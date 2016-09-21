@@ -132,10 +132,13 @@ public:
    *  @param dim1  dimension of data.
    *  @param dim2  dimension of data.
    *  @param copy  true if copy into a new matrix, false will create
-   *               matrix inplace.
+   *               matrix inplace. copy = false should be used with extreme
+   *               care because Matrix will share the memory with the given
+   *               numpy array. If the numpy array object is no longer valid,
+   *               the memory space will not be usable.
    */
   static Matrix* createCpuDenseFromNumpy(float* data, int dim1, int dim2,
-                                         bool copy = false);
+                                         bool copy = true);
 
   /// Create Gpu Dense Matrix from numpy matrix, dtype=float32
   static Matrix* createGpuDenseFromNumpy(float* data, int dim1, int dim2);
@@ -236,10 +239,17 @@ public:
    * If copy is false, it will create vector inplace.
    */
   static Vector* createCpuVectorFromNumpy(float* data, int dim,
-                                          bool copy = false);
+                                          bool copy = true);
 
   /// Create Gpu Vector from numpy array, which dtype=float32
   static Vector* createGpuVectorFromNumpy(float* data, int dim);
+
+  /**
+   * copy from another vector
+   * throw(RangeError) if size of src vector is different from size of this
+   * vector
+   */
+  void copyFrom(Vector* src) throw(RangeError);
 
   /// Cast to numpy array inplace.
   void toNumpyArrayInplace(float** view_data, int* dim1) throw(UnsupportError);
@@ -293,7 +303,7 @@ public:
    * If copy is false, it will create vector inplace
    */
   static IVector* createCpuVectorFromNumpy(int* data, int dim,
-                                           bool copy = false);
+                                           bool copy = true);
   /**
    * Create Gpu IVector from numpy array, which dtype=int32
    */
@@ -372,7 +382,7 @@ public:
    * the param idx is the slot id
    */
   Matrix* getSlotValue(size_t idx) const throw(RangeError);
-  Matrix* getGrad(size_t idx) const throw(RangeError);
+  Matrix* getSlotGrad(size_t idx) const throw(RangeError);
   IVector* getSlotIds(size_t idx) const throw(RangeError);
   Matrix* getSlotIn(size_t idx) const throw(RangeError);
   IVector* getSlotSequenceStartPositions(size_t idx) const throw(RangeError);
@@ -389,7 +399,7 @@ public:
    * The other param is the input Matrix or vector.
    */
   void setSlotValue(size_t idx, Matrix* mat) throw(RangeError);
-  void setGrad(size_t idx, Matrix* mat) throw(RangeError);
+  void setSlotGrad(size_t idx, Matrix* mat) throw(RangeError);
   void setSlotIn(size_t idx, Matrix* mat) throw(RangeError);
   void setSlotIds(size_t idx, IVector* vec) throw(RangeError);
   void setSlotSequenceStartPositions(size_t idx,
@@ -491,6 +501,7 @@ public:
   size_t getID() const;
 
   ParameterConfig* getConfig();
+  void setValueUpdated();
 
 private:
   static Parameter* createFromRawPtr(void* ptr);

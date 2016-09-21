@@ -69,3 +69,5 @@ ParameterConfig* Parameter::getConfig() {
 }
 
 size_t Parameter::getID() const { return m->getPtr()->getID(); }
+
+void Parameter::setValueUpdated() { m->getPtr()->setValueUpdated(); }
