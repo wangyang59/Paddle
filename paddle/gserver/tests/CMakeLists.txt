@@ -20,6 +20,15 @@ add_unittest_without_exec(test_LayerGrad
 add_test(NAME test_LayerGrad
     COMMAND test_LayerGrad)
 
+################# test_ConvTrans #######################
+add_unittest_without_exec(test_ConvTrans
+    test_ConvTrans.cpp
+    LayerGradUtil.cpp
+    TestUtil.cpp)
+
+add_test(NAME test_ConvTrans
+    COMMAND test_ConvTrans)
+
 ################## test_Evaluator #######################
 add_unittest(test_Evaluator
     test_Evaluator.cpp
