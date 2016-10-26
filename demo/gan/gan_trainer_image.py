@@ -16,6 +16,7 @@ import argparse
 import itertools
 import random
 import numpy
+import sys
 
 from paddle.trainer.config_parser import parse_config
 from paddle.trainer.config_parser import logger
@@ -141,9 +142,9 @@ def get_layer_size(model_conf, layer_name):
 
 def main():
     api.initPaddle('--use_gpu=0', '--dot_period=100', '--log_period=10000')
-    gen_conf = parse_config("gan_conf.py", "mode=generator_training")
-    dis_conf = parse_config("gan_conf.py", "mode=discriminator_training")
-    generator_conf = parse_config("gan_conf.py", "mode=generator")
+    gen_conf = parse_config("gan_conf_image.py", "mode=generator_training")
+    dis_conf = parse_config("gan_conf_image.py", "mode=discriminator_training")
+    generator_conf = parse_config("gan_conf_image.py", "mode=generator")
     batch_size = dis_conf.opt_config.batch_size
     noise_dim = get_layer_size(gen_conf.model_config, "noise")
     sample_dim = get_layer_size(dis_conf.model_config, "sample")
@@ -166,14 +167,20 @@ def main():
 
     gen_trainer = api.Trainer.create(
         gen_conf, gen_training_machine)
-
+    
+    fake_samples = get_fake_samples(generator_machine, batch_size, 
+                                    noise_dim, sample_dim)
+    print fake_samples.shape
+    
+    sys.exit(0)
+    
     dis_trainer.startTrain()
     gen_trainer.startTrain()
-    
+     
     curr_train = "dis"
     curr_strike = 0
     MAX_strike = 5
-    
+     
     for train_pass in xrange(10):
         dis_trainer.startTrainPass()
         gen_trainer.startTrainPass()
@@ -184,20 +191,20 @@ def main():
             data_batch_dis_pos = prepare_discriminator_data_batch_pos(
                 batch_size, noise_dim, sample_dim)
             dis_loss_pos = get_training_loss(dis_training_machine, data_batch_dis_pos)
-            
+             
             data_batch_dis_neg = prepare_discriminator_data_batch_neg(
                 generator_machine, batch_size, noise_dim, sample_dim)
             dis_loss_neg = get_training_loss(dis_training_machine, data_batch_dis_neg)            
-            
+             
             dis_loss = (dis_loss_pos + dis_loss_neg) / 2.0
-            
+             
             data_batch_gen = prepare_generator_data_batch(
                     batch_size, noise_dim)
             gen_loss = get_training_loss(gen_training_machine, data_batch_gen)
-            
+             
             if i % 1000 == 0:
                 print "d_loss is %s    g_loss is %s" % (dis_loss, gen_loss)
-                            
+                             
             if (not (curr_train == "dis" and curr_strike == MAX_strike)) and ((curr_train == "gen" and curr_strike == MAX_strike) or dis_loss > 0.690 or dis_loss > gen_loss):
                 if curr_train == "dis":
                     curr_strike += 1
@@ -209,7 +216,7 @@ def main():
 #                 dis_loss = numpy.mean(dis_trainer.getForwardOutput()[0]["value"])
 #                 print "getForwardOutput loss is %s" % dis_loss                
                 copy_shared_parameters(dis_training_machine, gen_training_machine)
-
+ 
             else:
                 if curr_train == "gen":
                     curr_strike += 1
@@ -219,10 +226,10 @@ def main():
                 gen_trainer.trainOneDataBatch(batch_size, data_batch_gen)    
                 copy_shared_parameters(gen_training_machine, dis_training_machine)
                 copy_shared_parameters(gen_training_machine, generator_machine)
-
+ 
         dis_trainer.finishTrainPass()
         gen_trainer.finishTrainPass()
-
+ 
         fake_samples = get_fake_samples(generator_machine, batch_size, noise_dim, sample_dim)
         plot2DScatter(fake_samples, "./train_pass%s.png" % train_pass)
     dis_trainer.finishTrain()
