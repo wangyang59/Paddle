@@ -2,4 +2,6 @@ output/
 *.png
 .pydevproject
 .project
+data/
+trainLog.txt
 
