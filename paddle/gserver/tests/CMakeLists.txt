@@ -28,6 +28,15 @@ add_unittest_without_exec(test_ConvTrans
 
 add_test(NAME test_ConvTrans
     COMMAND test_ConvTrans)
+    
+################# test_BatchNorm #######################
+add_unittest_without_exec(test_BatchNorm
+    test_BatchNorm.cpp
+    LayerGradUtil.cpp
+    TestUtil.cpp)
+
+add_test(NAME test_BatchNorm
+    COMMAND test_BatchNorm)
 
 ################## test_Evaluator #######################
 add_unittest(test_Evaluator
