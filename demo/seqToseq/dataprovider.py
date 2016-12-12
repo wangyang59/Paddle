@@ -67,6 +67,7 @@ def _get_ids(s, dictionary):
 
 @provider(init_hook=hook, pool_size=50000)
 def process(settings, file_name):
+    settings.logger.info("generated")
     with open(file_name, 'r') as f:
         for line_count, line in enumerate(f):
             line_split = line.strip().split('\t')
@@ -85,6 +86,7 @@ def process(settings, file_name):
                     continue
                 trg_ids_next = trg_ids + [settings.trg_dict[END]]
                 trg_ids = [settings.trg_dict[START]] + trg_ids
+
                 yield {
                     'source_language_word': src_ids,
                     'target_language_word': trg_ids,

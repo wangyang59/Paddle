@@ -18,10 +18,10 @@ cd ..
 paddle train \
 --config='translation/train.conf' \
 --save_dir='translation/model' \
---use_gpu=false \
+--use_gpu=1 \
 --num_passes=16 \
 --show_parameter_stats_period=100 \
---trainer_count=4 \
+--trainer_count=1 \
 --log_period=10 \
 --dot_period=5 \
 2>&1 | tee 'translation/train.log'

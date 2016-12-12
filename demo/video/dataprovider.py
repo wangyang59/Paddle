@@ -19,17 +19,8 @@ def hook(settings, src_path, is_generating, file_list, **kwargs):
     # job_mode = 1: training mode
     # job_mode = 0: generating mode
     settings.job_mode = not is_generating
-    
-    num_frames = 10
-    batch_size = 50
     image_size = 64
-    num_digits = 2
-    step_length = 0.1
     
-    dataHandler = data_handler.BouncingMNISTDataHandler(num_frames, batch_size, image_size, 
-                                            num_digits, step_length, src_path)
-
-    settings.srcDataHandler = dataHandler
     settings.src_dim =  image_size * image_size
     
     if settings.job_mode:
@@ -48,16 +39,30 @@ def hook(settings, src_path, is_generating, file_list, **kwargs):
             'sent_id':
             integer_value_sequence(len(open(file_list[0], "r").readlines()))
         }
+    
+    settings.logger.info("src dim %d" % (settings.src_dim))
 
 @provider(init_hook=hook)
 def process(settings, file_name):
+    settings.logger.info("started process")
+    num_frames = 10
+    batch_size = 50
+    image_size = 64
+    num_digits = 2
+    step_length = 0.1
+    
+    dataHandler = data_handler.BouncingMNISTDataHandler(num_frames, batch_size, image_size, 
+                                            num_digits, step_length, "./data/mnist.h5")
+    
+
     for i in xrange(100):
-        batch = settings.srcDataHandler.GetBatch()[0]
+        batch = dataHandler.GetBatch()[0]
         for j in xrange(batch.shape[0]):
             seq = map(list, list(batch[j].reshape(-1, settings.src_dim)))
-            
+            settings.logger.info("generated %d %d" % (i, j))
             yield {
                 'source_image_seq': seq,
                 'target_image_seq': seq[0:-1],
                 'target_image_seq_next': seq[1:]
             }
+            settings.logger.info("generated %d %d" % (i, j))

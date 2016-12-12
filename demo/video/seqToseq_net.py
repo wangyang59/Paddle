@@ -26,8 +26,8 @@ def seq_to_seq_data(data_dir,
     is_generating: whether this config is used for generating
     """
     define_py_data_sources2(
-        "train.list",
-        "test.list",
+        "./data/train.list",
+        "./data/test.list",
         module="dataprovider",
         obj="process",
         args={
