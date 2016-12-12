@@ -2,4 +2,4 @@ data/
 *.pyc
 *.log
 *.png
-
+model/
