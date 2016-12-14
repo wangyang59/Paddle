@@ -54,8 +54,15 @@ def gru_encoder_decoder(is_generating,
     beam_size: expand width in beam search
     max_length: a stop condition of sequence generation
     """
-    
+    # Declare inputs at the beginning
     src_image = data_layer(name='source_image_seq', size=64*64)
+    trg_image = data_layer(name='target_image_seq', size=64*64)
+    if not is_generating:
+        trg_next_image = data_layer(name='target_image_seq_next', size=64*64)
+        inputs(src_image, trg_image, trg_next_image)
+    else:
+        inputs(src_image, trg_image)  
+    
     src_embedding = fc_layer(input=src_image, name="src_embedding", 
                              size=img_embed_dim,
                              bias_attr=ParamAttr(name="_src_embedding_bias"),
@@ -100,6 +107,39 @@ def gru_encoder_decoder(is_generating,
                 act=ReluActivation()) as out:
             out += full_matrix_projection(input=gru_step)
         return out
+    
+    def gru_decoder_with_attention_gen(enc_vec, enc_proj, current_img_embed):
+        decoder_mem = memory(
+            name='gru_decoder', size=decoder_size, boot_layer=decoder_boot)
+        img_gen_embed_mem = memory(
+            name='gru_img_embed_gen', size=img_embed_dim)
+
+        context = simple_attention(
+            encoded_sequence=enc_vec,
+            encoded_proj=enc_proj,
+            decoder_state=decoder_mem)
+
+        with mixed_layer(size=decoder_size * 3) as decoder_inputs:
+            decoder_inputs += full_matrix_projection(input=context)
+            decoder_inputs += full_matrix_projection(input=img_gen_embed_mem)
+
+        gru_step = gru_step_layer(
+            name='gru_decoder',
+            input=decoder_inputs,
+            output_mem=decoder_mem,
+            size=decoder_size)
+
+        with mixed_layer(
+                size=64*64, bias_attr=True,
+                act=ReluActivation()) as out:
+            out += full_matrix_projection(input=gru_step)
+        
+        fc_layer(input=out, name="gru_img_embed_gen", 
+                 size=img_embed_dim,
+                 bias_attr=ParamAttr(name="_src_embedding_bias"),
+                 param_attr=ParamAttr(name="_src_embedding_param"),
+                 act=ReluActivation())
+        return out
 
     decoder_group_name = "decoder_group"
     group_inputs = [
@@ -109,8 +149,7 @@ def gru_encoder_decoder(is_generating,
     ]
 
     if not is_generating:
-        trg_embedding = fc_layer(input=data_layer(name='target_image_seq', 
-                                                  size=64*64), 
+        trg_embedding = fc_layer(input=trg_image, 
                                  name="trg_embedding", 
                                  size=img_embed_dim,
                                  bias_attr=ParamAttr(name="_src_embedding_bias"),
@@ -128,8 +167,7 @@ def gru_encoder_decoder(is_generating,
             step=gru_decoder_with_attention,
             input=group_inputs)
 
-        trg_next_data = data_layer(name='target_image_seq_next', size=64*64)
-        cost = regression_cost(input=decoder, label=trg_next_data)
+        cost = regression_cost(input=decoder, label=trg_next_image)
         outputs(cost)
     else:
         # In generation, the decoder predicts a next target word based on
@@ -141,25 +179,21 @@ def gru_encoder_decoder(is_generating,
         # GeneratedInputs, which is initialized by a start mark, such as <s>,
         # and must be included in generation.
 
-        trg_embedding = GeneratedInput(
-            size=target_dict_dim,
-            embedding_name='_target_language_embedding',
-            embedding_size=word_vector_dim)
+        trg_embedding = fc_layer(input=trg_image, 
+                                 name="trg_embedding", 
+                                 size=img_embed_dim,
+                                 bias_attr=ParamAttr(name="_src_embedding_bias"),
+                                 param_attr=ParamAttr(name="_src_embedding_param"),
+                                 act=ReluActivation())
         group_inputs.append(trg_embedding)
-
-        beam_gen = beam_search(
+        # For decoder equipped with attention mechanism, in training,
+        # target embeding (the groudtruth) is the data input,
+        # while encoded source sequence is accessed to as an unbounded memory.
+        # Here, the StaticInput defines a read-only memory
+        # for the recurrent_group.
+        decoder = recurrent_group(
             name=decoder_group_name,
-            step=gru_decoder_with_attention,
-            input=group_inputs,
-            bos_id=0,
-            eos_id=1,
-            beam_size=beam_size,
-            max_length=max_length)
+            step=gru_decoder_with_attention_gen,
+            input=group_inputs)
 
-        seqtext_printer_evaluator(
-            input=beam_gen,
-            id_input=data_layer(
-                name="sent_id", size=1),
-            dict_file=trg_dict_path,
-            result_file=gen_trans_file)
-        outputs(beam_gen)
+        outputs(decoder)

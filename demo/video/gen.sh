@@ -13,14 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 set -e
-cd ..
 
 paddle train \
     --job=test \
-    --config='translation/gen.conf' \
-    --save_dir='data/wmt14_model' \
-    --use_gpu=false \
-    --num_passes=13 \
-    --test_pass=12 \
+    --config='gen.conf' \
+    --use_gpu=1 \
     --trainer_count=1 \
-    2>&1 | tee 'translation/gen.log'
+    --init_model_path='./model/pass-00011' \
+    --predict_output_dir=. \
+    2>&1 | tee 'gen.log'
+
+python visualize.py

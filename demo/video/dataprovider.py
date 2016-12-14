@@ -46,26 +46,35 @@ def hook(settings, src_path, is_generating, file_list, **kwargs):
         }
     else:
         settings.slots = {
-            'source_language_word':
-            dense_vector_sequence(len(settings.src_dict)),
-            'sent_id':
-            dense_vector_sequence(len(open(file_list[0], "r").readlines()))
+            'source_image_seq':
+            dense_vector_sequence(settings.src_dim),
+            'target_image_seq':
+            dense_vector_sequence(settings.src_dim)
         }
     
 
 @provider(init_hook=hook)
 def process(settings, file_name):
     first_frame = np.zeros(settings.src_dim).astype("float32")
-    if "train" in file_name:
-        n = 1000
+    if settings.job_mode == 1:
+        if "train" in file_name:
+            n = 1000
+        else:
+            n = 100
     else:
-        n = 100
+        n = 1
     for i in xrange(n):
         batch = settings.dataHandler.GetBatch()[0]
         for j in xrange(batch.shape[0]):
             seq = [first_frame] + list(batch[j].reshape(-1, settings.src_dim))
-            yield {
-                'source_image_seq': seq,
-                'target_image_seq': seq[0:-1],
-                'target_image_seq_next': seq[1:]
-            }
+            if settings.job_mode:
+                yield {
+                    'source_image_seq': seq[1:],
+                    'target_image_seq': seq[0:-1],
+                    'target_image_seq_next': seq[1:]
+                }
+            else:
+                yield {
+                    'source_image_seq': seq[1:],
+                    'target_image_seq': seq[0:-1]
+                }
