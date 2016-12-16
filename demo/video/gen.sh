@@ -19,7 +19,7 @@ paddle train \
     --config='gen.conf' \
     --use_gpu=1 \
     --trainer_count=1 \
-    --init_model_path='./model/pass-00011' \
+    --init_model_path='./model/pass-00013' \
     --predict_output_dir=. \
     2>&1 | tee 'gen.log'
 

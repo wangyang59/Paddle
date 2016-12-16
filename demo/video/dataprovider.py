@@ -16,6 +16,7 @@ from paddle.trainer.PyDataProvider2 import *
 import data_handler
 import numpy as np
 
+
 def hook(settings, src_path, is_generating, file_list, **kwargs):
     # job_mode = 1: training mode
     # job_mode = 0: generating mode
@@ -25,33 +26,24 @@ def hook(settings, src_path, is_generating, file_list, **kwargs):
     image_size = 64
     num_digits = 2
     step_length = 0.1
-    
-    settings.dataHandler = data_handler.BouncingMNISTDataHandler(num_frames, 
-                                                                 batch_size, 
-                                                                 image_size, 
-                                                                 num_digits, 
-                                                                 step_length, 
-                                                                 src_path)
-    
-    settings.src_dim =  image_size * image_size
-    
+
+    settings.dataHandler = data_handler.BouncingMNISTDataHandler(
+        num_frames, batch_size, image_size, num_digits, step_length, src_path)
+
+    settings.src_dim = image_size * image_size
+
     if settings.job_mode:
         settings.slots = {
-            'source_image_seq':
-            dense_vector_sequence(settings.src_dim),
-            'target_image_seq':
-            dense_vector_sequence(settings.src_dim),
-            'target_image_seq_next':
-            dense_vector_sequence(settings.src_dim)
+            'source_image_seq': dense_vector_sequence(settings.src_dim),
+            'target_image_seq': dense_vector_sequence(settings.src_dim),
+            'target_image_seq_next': dense_vector_sequence(settings.src_dim)
         }
     else:
         settings.slots = {
-            'source_image_seq':
-            dense_vector_sequence(settings.src_dim),
-            'target_image_seq':
-            dense_vector_sequence(settings.src_dim)
+            'source_image_seq': dense_vector_sequence(settings.src_dim),
+            'target_image_seq': dense_vector_sequence(settings.src_dim)
         }
-    
+
 
 @provider(init_hook=hook)
 def process(settings, file_name):
@@ -66,15 +58,15 @@ def process(settings, file_name):
     for i in xrange(n):
         batch = settings.dataHandler.GetBatch()[0]
         for j in xrange(batch.shape[0]):
-            seq = [first_frame] + list(batch[j].reshape(-1, settings.src_dim))
+            seq = list(batch[j].reshape(-1, settings.src_dim))
             if settings.job_mode:
                 yield {
-                    'source_image_seq': seq[1:],
-                    'target_image_seq': seq[0:-1],
-                    'target_image_seq_next': seq[1:]
+                    'source_image_seq': seq[0:5],
+                    'target_image_seq': [first_frame] + seq[5:-1],
+                    'target_image_seq_next': seq[5:]
                 }
             else:
                 yield {
-                    'source_image_seq': seq[1:],
-                    'target_image_seq': seq[0:-1]
+                    'source_image_seq': seq[0:5],
+                    'target_image_seq': seq[5:]
                 }

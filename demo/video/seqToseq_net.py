@@ -19,8 +19,7 @@ import os
 from paddle.trainer_config_helpers import *
 
 
-def seq_to_seq_data(data_dir,
-                    is_generating):
+def seq_to_seq_data(data_dir, is_generating):
     """
     Predefined seqToseq train data provider for application
     is_generating: whether this config is used for generating
@@ -30,13 +29,8 @@ def seq_to_seq_data(data_dir,
         "./data/test.list",
         module="dataprovider",
         obj="process",
-        args={
-            "src_path": data_dir,
-            "is_generating": is_generating
-        })
-    
-    
-
+        args={"src_path": data_dir,
+              "is_generating": is_generating})
 
 
 def gru_encoder_decoder(is_generating,
@@ -55,20 +49,22 @@ def gru_encoder_decoder(is_generating,
     max_length: a stop condition of sequence generation
     """
     # Declare inputs at the beginning
-    src_image = data_layer(name='source_image_seq', size=64*64)
-    trg_image = data_layer(name='target_image_seq', size=64*64)
+    src_image = data_layer(name='source_image_seq', size=64 * 64)
+    trg_image = data_layer(name='target_image_seq', size=64 * 64)
     if not is_generating:
-        trg_next_image = data_layer(name='target_image_seq_next', size=64*64)
+        trg_next_image = data_layer(name='target_image_seq_next', size=64 * 64)
         inputs(src_image, trg_image, trg_next_image)
     else:
-        inputs(src_image, trg_image)  
-    
-    src_embedding = fc_layer(input=src_image, name="src_embedding", 
-                             size=img_embed_dim,
-                             bias_attr=ParamAttr(name="_src_embedding_bias"),
-                             param_attr=ParamAttr(name="_src_embedding_param"),
-                             act=ReluActivation())
-    
+        inputs(src_image, trg_image)
+
+    src_embedding = fc_layer(
+        input=src_image,
+        name="src_embedding",
+        size=img_embed_dim,
+        bias_attr=ParamAttr(name="_src_embedding_bias"),
+        param_attr=ParamAttr(name="_src_embedding_param"),
+        act=ReluActivation())
+
     src_forward = simple_gru(input=src_embedding, size=encoder_size)
     src_backward = simple_gru(
         input=src_embedding, size=encoder_size, reverse=True)
@@ -78,9 +74,7 @@ def gru_encoder_decoder(is_generating,
         encoded_proj += full_matrix_projection(input=encoded_vector)
 
     backward_first = first_seq(input=src_backward)
-    with mixed_layer(
-            size=decoder_size,
-            act=TanhActivation()) as decoder_boot:
+    with mixed_layer(size=decoder_size, act=TanhActivation()) as decoder_boot:
         decoder_boot += full_matrix_projection(input=backward_first)
 
     def gru_decoder_with_attention(enc_vec, enc_proj, current_img_embed):
@@ -103,16 +97,22 @@ def gru_encoder_decoder(is_generating,
             size=decoder_size)
 
         with mixed_layer(
-                size=64*64, bias_attr=True,
-                act=ReluActivation()) as out:
+                size=64 * 64, bias_attr=True, act=ReluActivation()) as out:
             out += full_matrix_projection(input=gru_step)
         return out
-    
+
     def gru_decoder_with_attention_gen(enc_vec, enc_proj, current_img_embed):
         decoder_mem = memory(
             name='gru_decoder', size=decoder_size, boot_layer=decoder_boot)
-        img_gen_embed_mem = memory(
-            name='gru_img_embed_gen', size=img_embed_dim)
+        img_gen_mem = memory(name='gru_img_gen', size=64 * 64)
+
+        img_gen_embed_mem = fc_layer(
+            input=img_gen_mem,
+            name="gru_img_embed_gen",
+            size=img_embed_dim,
+            bias_attr=ParamAttr(name="_src_embedding_bias"),
+            param_attr=ParamAttr(name="_src_embedding_param"),
+            act=ReluActivation())
 
         context = simple_attention(
             encoded_sequence=enc_vec,
@@ -129,16 +129,18 @@ def gru_encoder_decoder(is_generating,
             output_mem=decoder_mem,
             size=decoder_size)
 
-        with mixed_layer(
-                size=64*64, bias_attr=True,
-                act=ReluActivation()) as out:
-            out += full_matrix_projection(input=gru_step)
-        
-        fc_layer(input=out, name="gru_img_embed_gen", 
-                 size=img_embed_dim,
-                 bias_attr=ParamAttr(name="_src_embedding_bias"),
-                 param_attr=ParamAttr(name="_src_embedding_param"),
-                 act=ReluActivation())
+        out = mixed_layer(
+            size=64 * 64,
+            bias_attr=True,
+            act=ReluActivation(),
+            input=full_matrix_projection(input=gru_step))
+
+        out2 = mixed_layer(
+            size=64 * 64,
+            act=IdentityActivation(),
+            input=identity_projection(input=out),
+            name="gru_img_gen")
+        # decoder_mem.set_input(out)
         return out
 
     decoder_group_name = "decoder_group"
@@ -149,12 +151,13 @@ def gru_encoder_decoder(is_generating,
     ]
 
     if not is_generating:
-        trg_embedding = fc_layer(input=trg_image, 
-                                 name="trg_embedding", 
-                                 size=img_embed_dim,
-                                 bias_attr=ParamAttr(name="_src_embedding_bias"),
-                                 param_attr=ParamAttr(name="_src_embedding_param"),
-                                 act=ReluActivation())
+        trg_embedding = fc_layer(
+            input=trg_image,
+            name="trg_embedding",
+            size=img_embed_dim,
+            bias_attr=ParamAttr(name="_src_embedding_bias"),
+            param_attr=ParamAttr(name="_src_embedding_param"),
+            act=ReluActivation())
         group_inputs.append(trg_embedding)
 
         # For decoder equipped with attention mechanism, in training,
@@ -179,12 +182,13 @@ def gru_encoder_decoder(is_generating,
         # GeneratedInputs, which is initialized by a start mark, such as <s>,
         # and must be included in generation.
 
-        trg_embedding = fc_layer(input=trg_image, 
-                                 name="trg_embedding", 
-                                 size=img_embed_dim,
-                                 bias_attr=ParamAttr(name="_src_embedding_bias"),
-                                 param_attr=ParamAttr(name="_src_embedding_param"),
-                                 act=ReluActivation())
+        trg_embedding = fc_layer(
+            input=trg_image,
+            name="trg_embedding",
+            size=img_embed_dim,
+            bias_attr=ParamAttr(name="_src_embedding_bias"),
+            param_attr=ParamAttr(name="_src_embedding_param"),
+            act=ReluActivation())
         group_inputs.append(trg_embedding)
         # For decoder equipped with attention mechanism, in training,
         # target embeding (the groudtruth) is the data input,
