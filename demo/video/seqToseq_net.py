@@ -34,9 +34,9 @@ def seq_to_seq_data(data_dir, is_generating):
 
 
 def gru_encoder_decoder(is_generating,
-                        img_embed_dim=512,
-                        encoder_size=512,
-                        decoder_size=512,
+                        img_embed_dim=1024,
+                        encoder_size=1024,
+                        decoder_size=1024,
                         beam_size=3,
                         max_length=250):
     """

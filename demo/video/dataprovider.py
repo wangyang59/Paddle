@@ -21,7 +21,7 @@ def hook(settings, src_path, is_generating, file_list, **kwargs):
     # job_mode = 1: training mode
     # job_mode = 0: generating mode
     settings.job_mode = not is_generating
-    num_frames = 10
+    num_frames = 20
     batch_size = 50
     image_size = 64
     num_digits = 2
@@ -61,12 +61,12 @@ def process(settings, file_name):
             seq = list(batch[j].reshape(-1, settings.src_dim))
             if settings.job_mode:
                 yield {
-                    'source_image_seq': seq[0:5],
-                    'target_image_seq': [first_frame] + seq[5:-1],
-                    'target_image_seq_next': seq[5:]
+                    'source_image_seq': seq[0:10],
+                    'target_image_seq': [first_frame] + seq[10:-1],
+                    'target_image_seq_next': seq[10:]
                 }
             else:
                 yield {
-                    'source_image_seq': seq[0:5],
-                    'target_image_seq': seq[5:]
+                    'source_image_seq': seq[0:10],
+                    'target_image_seq': seq[10:]
                 }
