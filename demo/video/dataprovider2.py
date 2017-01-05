@@ -31,19 +31,19 @@ def hook(settings, src_path, file_list, **kwargs):
 
     settings.slots = {
         'source_image_seq': dense_vector_sequence(settings.src_dim),
-        'target_image': dense_vector(settings.src_dim)
+        'target_image_seq': dense_vector_sequence(settings.src_dim)
     }
 
 
-@provider(init_hook=hook)
+@provider(init_hook=hook, pool_size=10 * 50)
 def process(settings, file_name):
     if "train" in file_name:
         n = 1000
     else:
-        n = 100
+        n = 1
 
     for i in xrange(n):
         batch = settings.dataHandler.GetBatch()[0]
         for j in xrange(batch.shape[0]):
             seq = list(batch[j].reshape(-1, settings.src_dim))
-            yield {'source_image_seq': seq[0:10], 'target_image': seq[10]}
+            yield {'source_image_seq': seq[0:10], 'target_image_seq': seq[10:]}

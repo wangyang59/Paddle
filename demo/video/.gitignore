@@ -2,5 +2,6 @@ data/
 *.pyc
 *.log
 *.png
-model/
+*.configStr
+model*/
 rank-00000

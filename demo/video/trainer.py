@@ -1,5 +1,4 @@
-#edit-mode: -*- python -*-
-# Copyright (c) 2016 Baidu, Inc. All Rights Reserved
+# Copyright (c) 2016 PaddlePaddle Authors. All Rights Reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,24 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-sys.path.append("..")
+import argparse
+import numpy
 
-from seqToseq_net import *
+from paddle.trainer.config_parser import parse_config
+from paddle.trainer.config_parser import logger
+import py_paddle.swig_paddle as api
 
-# whether this config is used for generating
-is_generating = False
 
-### Data Definiation
-data_dir  = "./data/mnist.h5"
-seq_to_seq_data(data_dir = data_dir, 
-                is_generating = is_generating)
+def main():
+    api.initPaddle('--use_gpu=1', '--dot_period=10', '--log_period=100',
+                   '--save_dir=' + "./model")
 
-### Algorithm Configuration
-settings(
-    learning_method = AdamOptimizer(),
-    batch_size = 50,
-    learning_rate = 5e-4)
+    conf = parse_config("train.conf", "")
+    logger.info(str(conf.model_config))
 
-### Network Architecture
-gru_encoder_decoder2(is_generating)
+
+if __name__ == '__main__':
+    main()

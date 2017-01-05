@@ -16,11 +16,12 @@ set -e
 
 paddle train \
 --config='./train2.conf' \
---save_dir='./model' \
+--save_dir='./model3' \
 --use_gpu=1 \
---num_passes=16 \
+--gpu_id=1 \
+--num_passes=100 \
 --show_parameter_stats_period=100 \
 --trainer_count=1 \
 --log_period=10 \
 --dot_period=5 \
-2>&1 | tee './train.log'
+2>&1 | tee './train3.log'

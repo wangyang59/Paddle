@@ -16,11 +16,11 @@ set -e
 
 paddle train \
     --job=test \
-    --config='gen.conf' \
+    --config='gen2.conf' \
     --use_gpu=1 \
     --trainer_count=1 \
-    --init_model_path='./model/pass-00015' \
+    --init_model_path='./model/pass-00074' \
     --predict_output_dir=. \
     2>&1 | tee 'gen.log'
 
-python visualize.py
+python visualize.py 20
