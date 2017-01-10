@@ -22,9 +22,10 @@ def cal_filter_padding(imgSize, output_size, stride):
     if tmp < 1 or tmp > 5:
         print(imgSize, output_size, stride)
         raise ValueError("conv input-output dimension does not fit")
-    elif tmp == 1:
-        filter_size = 5
-        padding = 2
+
+#     elif tmp == 1:
+#         filter_size = 5
+#         padding = 2
     elif tmp <= 3:
         filter_size = tmp + 2
         padding = 1
@@ -133,7 +134,9 @@ def create_conv_lstm_step(img_size, channels, output_size, num_filters, stride,
 
         concat = concat_layer(input=[current_img, hidden_mem])
 
-        with mixed_layer(size=hidden_size * 4) as ipt:
+        with mixed_layer(
+                size=hidden_size * 4,
+                layer_attr=ExtraAttr(error_clipping_threshold=10.0)) as ipt:
             ipt += conv_projection(
                 concat,
                 filter_size2,
@@ -177,7 +180,8 @@ def create_conv_lstm_step(img_size, channels, output_size, num_filters, stride,
                         num_channels=num_filters * 2,
                         stride=1,
                         padding=padding2)
-            ])
+            ],
+            layer_attr=ExtraAttr(error_clipping_threshold=10.0))
 
         lstm_out = lstm_step_layer(
             ipt,
@@ -215,7 +219,9 @@ def create_convt_lstm_step(img_size, channels, output_size, num_filters, stride,
         cell_mem = memory(
             name='lstm_c' + nameIdx, size=hidden_size, boot_layer=boot_c)
 
-        with mixed_layer(size=hidden_size * 4) as ipt:
+        with mixed_layer(
+                size=hidden_size * 4,
+                layer_attr=ExtraAttr(error_clipping_threshold=10.0)) as ipt:
             ipt += conv_projection(
                 hidden_mem,
                 filter_size2,
@@ -272,7 +278,8 @@ def create_convt_lstm_step(img_size, channels, output_size, num_filters, stride,
                     num_channels=num_filters,
                     stride=1,
                     padding=padding2)
-            ])
+            ],
+            layer_attr=ExtraAttr(error_clipping_threshold=10.0))
 
         lstm_out = lstm_step_layer(
             ipt,
@@ -313,7 +320,7 @@ def conv_lstm_net(is_generating):
         param_attr=param_attr,
         bias_attr=bias_attr,
         param_attr_bn=param_attr_bn,
-        bn=True)
+        bn=False)
 
     conv2 = conv_bn(
         conv1,
@@ -326,7 +333,7 @@ def conv_lstm_net(is_generating):
         param_attr=param_attr,
         bias_attr=bias_attr,
         param_attr_bn=param_attr_bn,
-        bn=True)
+        bn=False)
 
     conv3 = conv_bn(
         conv2,
@@ -339,7 +346,7 @@ def conv_lstm_net(is_generating):
         param_attr=param_attr,
         bias_attr=bias_attr,
         param_attr_bn=param_attr_bn,
-        bn=True)
+        bn=False)
 
     conv_lstm_step1 = create_conv_lstm_step(64, 1, 32, 16, 2, 1, "1")
     encoder_layer1, cell_layer1 = recurrent_group(
@@ -379,6 +386,18 @@ def conv_lstm_net(is_generating):
     decoder_layer6 = recurrent_group(
         name="decoder_6", step=convt_lstm_step6, input=decoder_layer5)
 
+    #     convt_lstm_step5 = create_convt_lstm_step(16, 64, 8, 32, 2, 0,
+    #                                               last_seq(encoder_layer2),
+    #                                               last_seq(cell_layer2), "5")
+    #     decoder_layer5 = recurrent_group(
+    #         name="decoder_5", step=convt_lstm_step5, input=trg_image)
+    # 
+    #     convt_lstm_step6 = create_convt_lstm_step(32, 32, 16, 16, 2, 0,
+    #                                               last_seq(encoder_layer1),
+    #                                               last_seq(cell_layer1), "6")
+    #     decoder_layer6 = recurrent_group(
+    #         name="decoder_6", step=convt_lstm_step6, input=trg_image)
+
     convt3 = conv_bn(
         decoder_layer6,
         channels=16,
@@ -395,7 +414,7 @@ def conv_lstm_net(is_generating):
         act=SigmoidActivation())
 
     #     convt1 = conv_bn(
-    #         last_seq(encoder_layer3),
+    #         decoder_layer4,
     #         channels=64,
     #         output_x=8,
     #         num_filters=32,
@@ -405,11 +424,11 @@ def conv_lstm_net(is_generating):
     #         param_attr=param_attr,
     #         bias_attr=bias_attr,
     #         param_attr_bn=param_attr_bn,
-    #         bn=True,
+    #         bn=False,
     #         trans=True)
-    # 
+    #  
     #     convt2 = conv_bn(
-    #         concat_layer(input=[convt1, last_seq(encoder_layer2)]),
+    #         concat_layer(input=[convt1, decoder_layer5]),
     #         channels=32 * 2,
     #         output_x=16,
     #         num_filters=16,
@@ -419,11 +438,11 @@ def conv_lstm_net(is_generating):
     #         param_attr=param_attr,
     #         bias_attr=bias_attr,
     #         param_attr_bn=param_attr_bn,
-    #         bn=True,
+    #         bn=False,
     #         trans=True)
-    # 
+    #  
     #     convt3 = conv_bn(
-    #         concat_layer(input=[convt2, last_seq(encoder_layer1)]),
+    #         concat_layer(input=[convt2, decoder_layer6]),
     #         channels=16 * 2,
     #         output_x=32,
     #         num_filters=1,

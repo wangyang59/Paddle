@@ -35,7 +35,7 @@ def hook(settings, src_path, file_list, **kwargs):
     }
 
 
-@provider(init_hook=hook, pool_size=10 * 50)
+@provider(init_hook=hook, pool_size=100 * 50)
 def process(settings, file_name):
     if "train" in file_name:
         n = 1000

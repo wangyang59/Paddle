@@ -5,3 +5,4 @@ data/
 *.configStr
 model*/
 rank-00000
+*.out
