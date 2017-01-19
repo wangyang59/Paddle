@@ -354,7 +354,11 @@ void Layer::backwardActivation() {
   /* Do error clipping */
   if (config_.error_clipping_threshold() > 0.0f) {
     if (FLAGS_log_error_clipping) {
-      CpuVector outGradVec(0, nullptr);
+      if (FLAGS_use_gpu) {
+        GpuVector outGradVec(0, nullptr);
+      } else {
+        CpuVector outGradVec(0, nullptr);
+      }
       outGradVec.subVecFrom(
           output_.grad->getData(), 0, output_.grad->getElementCnt());
       real maxAbsGrad = outGradVec.getAbsMax();

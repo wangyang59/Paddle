@@ -16,4 +16,5 @@ dataHandler = data_handler.BouncingMNISTDataHandler(
     num_frames, batch_size, image_size, num_digits, step_length,
     "./data/mnist.h5")
 
+#data = dataHandler.GetBatch()[0]
 dataHandler.DisplayData(data, case_id=0, output_file="rec")

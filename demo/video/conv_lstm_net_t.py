@@ -18,8 +18,14 @@ def seq_to_image_data(data_dir):
         args={"src_path": data_dir})
 
 
-def create_conv_lstm_step(img_size, channels, output_size, num_filters, stride,
-                          num_inputs, nameIdx):
+def create_conv_lstm_step(img_size,
+                          channels,
+                          output_size,
+                          num_filters,
+                          stride,
+                          num_inputs,
+                          nameIdx,
+                          param_attr=None):
     input_size = img_size * img_size * channels
     hidden_size = output_size * output_size * num_filters
 
@@ -42,7 +48,8 @@ def create_conv_lstm_step(img_size, channels, output_size, num_filters, stride,
                 num_filters * 4,
                 num_channels=num_filters * 2,
                 stride=1,
-                padding=padding2)
+                padding=padding2,
+                param_attr=param_attr)
 
         lstm_out = lstm_step_layer(
             ipt,
@@ -51,7 +58,8 @@ def create_conv_lstm_step(img_size, channels, output_size, num_filters, stride,
             act=TanhActivation(),
             name="lstm_h" + nameIdx,
             gate_act=SigmoidActivation(),
-            state_act=TanhActivation())
+            state_act=TanhActivation(),
+            bias_attr=param_attr)
 
         cell_out = get_output_layer(
             name="lstm_c" + nameIdx, input=lstm_out, arg_name='state')
@@ -72,13 +80,15 @@ def create_conv_lstm_step(img_size, channels, output_size, num_filters, stride,
                     num_filters * 4,
                     num_channels=channels,
                     stride=stride,
-                    padding=padding1), conv_projection(
+                    padding=padding1,
+                    param_attr=param_attr), conv_projection(
                         concat,
                         filter_size2,
                         num_filters * 4,
                         num_channels=num_filters * 2,
                         stride=1,
-                        padding=padding2)
+                        padding=padding2,
+                        param_attr=param_attr)
             ],
             layer_attr=ExtraAttr(error_clipping_threshold=error_clipping))
 
@@ -89,7 +99,8 @@ def create_conv_lstm_step(img_size, channels, output_size, num_filters, stride,
             act=TanhActivation(),
             name="lstm_h" + nameIdx,
             gate_act=SigmoidActivation(),
-            state_act=TanhActivation())
+            state_act=TanhActivation(),
+            bias_attr=param_attr)
 
         cell_out = get_output_layer(
             name="lstm_c" + nameIdx, input=lstm_out, arg_name='state')
@@ -101,10 +112,18 @@ def create_conv_lstm_step(img_size, channels, output_size, num_filters, stride,
         return conv_lstm_step2
 
 
-def create_convt_lstm_step(img_size, channels, output_size, num_filters, stride,
-                           num_inputs, boot_h, boot_c, nameIdx):
-    param_attr = ParamAttr(initial_mean=0.0, initial_std=0.02)
-    bias_attr = ParamAttr(initial_mean=0.0, initial_std=0.0)
+def create_convt_lstm_step(img_size,
+                           channels,
+                           output_size,
+                           num_filters,
+                           stride,
+                           num_inputs,
+                           boot_h,
+                           boot_c,
+                           nameIdx,
+                           param_attr=None):
+    #     param_attr = ParamAttr(initial_mean=0.0, initial_std=0.02)
+    #     bias_attr = ParamAttr(initial_mean=0.0, initial_std=0.0)
 
     input_size = output_size * output_size * channels
     hidden_size = img_size * img_size * num_filters
@@ -128,7 +147,8 @@ def create_convt_lstm_step(img_size, channels, output_size, num_filters, stride,
                 num_filters * 4,
                 num_channels=num_filters,
                 stride=1,
-                padding=padding2)
+                padding=padding2,
+                param_attr=param_attr)
 
         lstm_out = lstm_step_layer(
             ipt,
@@ -137,7 +157,8 @@ def create_convt_lstm_step(img_size, channels, output_size, num_filters, stride,
             act=TanhActivation(),
             name="lstm_h" + nameIdx,
             gate_act=SigmoidActivation(),
-            state_act=TanhActivation())
+            state_act=TanhActivation(),
+            bias_attr=param_attr)
 
         get_output_layer(
             name="lstm_c" + nameIdx, input=lstm_out, arg_name='state')
@@ -159,7 +180,7 @@ def create_convt_lstm_step(img_size, channels, output_size, num_filters, stride,
             groups=1,
             stride=stride,
             padding=padding1,
-            bias_attr=bias_attr,
+            bias_attr=param_attr,
             param_attr=param_attr,
             shared_biases=True,
             layer_attr=None,
@@ -177,7 +198,8 @@ def create_convt_lstm_step(img_size, channels, output_size, num_filters, stride,
                     num_filters * 4,
                     num_channels=num_filters,
                     stride=1,
-                    padding=padding2)
+                    padding=padding2,
+                    param_attr=param_attr)
             ],
             layer_attr=ExtraAttr(error_clipping_threshold=error_clipping))
 
@@ -188,7 +210,8 @@ def create_convt_lstm_step(img_size, channels, output_size, num_filters, stride,
             act=TanhActivation(),
             name="lstm_h" + nameIdx,
             gate_act=SigmoidActivation(),
-            state_act=TanhActivation())
+            state_act=TanhActivation(),
+            bias_attr=param_attr)
 
         get_output_layer(
             name="lstm_c" + nameIdx, input=lstm_out, arg_name='state')
@@ -207,9 +230,7 @@ def conv_lstm_net(is_generating):
     trg_image = data_layer(name='target_image_seq', size=64 * 64)
     inputs(src_image, trg_image)
 
-    param_attr = ParamAttr(initial_mean=0.0, initial_std=0.02)
-    bias_attr = ParamAttr(initial_mean=0.0, initial_std=0.0)
-    param_attr_bn = ParamAttr(initial_mean=1.0, initial_std=0.02)
+    loaded_param_attr = ParamAttr(is_static=True)
 
     conv1 = conv_bn(
         src_image,
@@ -219,9 +240,9 @@ def conv_lstm_net(is_generating):
         output_x=32,
         stride=2,
         name="conv1",
-        param_attr=param_attr,
-        bias_attr=bias_attr,
-        param_attr_bn=param_attr_bn,
+        param_attr=loaded_param_attr,
+        bias_attr=loaded_param_attr,
+        param_attr_bn=loaded_param_attr,
         bn=False)
 
     conv2 = conv_bn(
@@ -232,9 +253,9 @@ def conv_lstm_net(is_generating):
         output_x=16,
         stride=2,
         name="conv2",
-        param_attr=param_attr,
-        bias_attr=bias_attr,
-        param_attr_bn=param_attr_bn,
+        param_attr=loaded_param_attr,
+        bias_attr=loaded_param_attr,
+        param_attr_bn=loaded_param_attr,
         bn=False)
 
     conv3 = conv_bn(

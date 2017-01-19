@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from transform import transform_img
 
 
 class DataHandler(object):
@@ -432,6 +433,35 @@ class BouncingMNISTDataHandler(object):
         start_x = (canvas_size * start_x).astype(np.int32)
         return start_y, start_x
 
+    def GetRandomValueSeq(self, batch_size, lower_limit, upper_limit):
+        length = self.seq_length_
+
+        # Initial position uniform random inside the box.
+        x = np.random.rand(batch_size)
+
+        # Choose a random velocity. between -0.1 and 0.1
+        v_x = (np.random.rand(batch_size) - 0.5) * 0.4
+
+        real_x = np.zeros((length, batch_size))
+        for i in xrange(length):
+            # Take a step along velocity.
+            x += v_x
+
+            # Bounce off edges.
+            for j in xrange(batch_size):
+                if x[j] <= 0:
+                    x[j] = 0
+                    v_x[j] = -v_x[j]
+                if x[j] >= 1.0:
+                    x[j] = 1.0
+                    v_x[j] = -v_x[j]
+
+            real_x[i, :] = x
+
+        # Scale to the size of the canvas.
+        real_x = lower_limit + real_x * (upper_limit - lower_limit)
+        return real_x
+
     def Overlap(self, a, b):
         """ Put b on top of a."""
         return np.maximum(a, b)
@@ -440,6 +470,15 @@ class BouncingMNISTDataHandler(object):
     def GetBatch(self, verbose=False):
         start_y, start_x = self.GetRandomTrajectory(self.batch_size_ *
                                                     self.num_digits_)
+
+        angles = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
+                                        -15, 15)
+        x_scales = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
+                                          0.8, 1.2)
+        y_scales = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
+                                          0.8, 1.2)
+        val_scales = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
+                                            0.8, 1.2)
 
         # minibatch data
         data = np.zeros(
@@ -464,8 +503,15 @@ class BouncingMNISTDataHandler(object):
                     left = start_x[i, j * self.num_digits_ + n]
                     bottom = top + self.digit_size_
                     right = left + self.digit_size_
+
+                    digit_image_t = transform_img(
+                        digit_image, angles[i, j * self.num_digits_ + n],
+                        x_scales[i, j * self.num_digits_ + n],
+                        y_scales[i, j * self.num_digits_ + n],
+                        val_scales[i, j * self.num_digits_ + n])
+
                     data[j, i, top:bottom, left:right] = self.Overlap(
-                        data[j, i, top:bottom, left:right], digit_image)
+                        data[j, i, top:bottom, left:right], digit_image_t)
 
         return data.reshape(self.batch_size_, -1), None
 
@@ -499,13 +545,22 @@ class BouncingMNISTDataHandler(object):
             else:
                 assert enc_seq_length == self.seq_length_ - fut.shape[0]
 
-        num_rows = 1
+        num_rows = 2
         # create figure for original sequence
-        plt.figure(2 * fig, figsize=(20, 1))
+        plt.figure(2 * fig, figsize=(10, 2))
         plt.clf()
-        for i in xrange(self.seq_length_):
-            plt.subplot(num_rows, self.seq_length_, i + 1)
-            plt.imshow(data[i, :, :], cmap=plt.cm.gray, interpolation="nearest")
+        for i in xrange(self.seq_length_ / 2):
+            plt.subplot(num_rows, self.seq_length_ / 2, i + 1)
+            plt.imshow(
+                data[i * 2 + 1, :, :],
+                cmap=plt.cm.gray,
+                interpolation="nearest")
+            plt.axis('off')
+
+            plt.subplot(num_rows, self.seq_length_ / 2,
+                        i + 1 + self.seq_length_ / 2)
+            plt.imshow(
+                data[i * 2, :, :], cmap=plt.cm.gray, interpolation="nearest")
             plt.axis('off')
         plt.draw()
         if output_file1 is not None:
