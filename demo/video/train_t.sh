@@ -15,7 +15,7 @@
 set -e
 
 paddle train \
---config='./transfer_conf.py' \
+--config='./train_t.conf' \
 --save_dir='./model_t' \
 --use_gpu=1 \
 --gpu_id=0 \

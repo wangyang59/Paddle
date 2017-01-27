@@ -357,8 +357,14 @@ class UnlabelledDataHandler(object):
 class BouncingMNISTDataHandler(object):
     """Data Handler that creates Bouncing MNIST dataset on the fly."""
 
-    def __init__(self, num_frames, batch_size, image_size, num_digits,
-                 step_length, mnist_data_file):
+    def __init__(self,
+                 num_frames,
+                 batch_size,
+                 image_size,
+                 num_digits,
+                 step_length,
+                 mnist_data_file,
+                 file_name='train'):
         self.seq_length_ = num_frames
         self.batch_size_ = batch_size
         self.image_size_ = image_size
@@ -369,9 +375,30 @@ class BouncingMNISTDataHandler(object):
         self.frame_size_ = self.image_size_**2
 
         f = h5py.File(mnist_data_file)
-
-        self.data_ = f['train'].value.reshape(-1, 28, 28)
+        self.data_ = f[file_name].value.reshape(-1, 28, 28)
+        self.label_ = f[file_name + '_labels'].value
         f.close()
+
+        #         if file_name != 'train':
+        #             self.data_ = self.data0_
+        #             self.label_ = self.label0_
+        #         else:
+        #             sample_num = 100
+        #             cnt = {}
+        #             self.data_ = np.zeros((sample_num*10, 28, 28), dtype=np.float32)
+        #             self.label_ = np.zeros((sample_num*10), dtype=np.int)
+        #             idx = 0
+        #             for i in xrange(self.data0_.shape[0]):
+        #                 lbl = self.label0_[i]
+        #                 if lbl in cnt:
+        #                     cnt[lbl] += 1
+        #                 else:
+        #                     cnt[lbl] = 1
+        #                 if cnt[lbl] <= sample_num:
+        #                    self.data_[idx, :, :] = self.data0_[i, :, :]
+        #                    self.label_[idx] = self.label0_[i]
+        #                    idx += 1
+
         self.indices_ = np.arange(self.data_.shape[0])
         self.row_ = 0
         np.random.shuffle(self.indices_)
@@ -448,13 +475,13 @@ class BouncingMNISTDataHandler(object):
             x += v_x
 
             # Bounce off edges.
-            for j in xrange(batch_size):
-                if x[j] <= 0:
-                    x[j] = 0
-                    v_x[j] = -v_x[j]
-                if x[j] >= 1.0:
-                    x[j] = 1.0
-                    v_x[j] = -v_x[j]
+            #             for j in xrange(batch_size):
+            #                 if x[j] <= 0:
+            #                     x[j] = 0
+            #                     v_x[j] = -v_x[j]
+            #                 if x[j] >= 1.0:
+            #                     x[j] = 1.0
+            #                     v_x[j] = -v_x[j]
 
             real_x[i, :] = x
 
@@ -485,6 +512,7 @@ class BouncingMNISTDataHandler(object):
             (self.batch_size_, self.seq_length_, self.image_size_,
              self.image_size_),
             dtype=np.float32)
+        label = np.zeros((self.batch_size_), dtype=np.int)
 
         for j in xrange(self.batch_size_):
             for n in xrange(self.num_digits_):
@@ -496,6 +524,7 @@ class BouncingMNISTDataHandler(object):
                     self.row_ = 0
                     np.random.shuffle(self.indices_)
                 digit_image = self.data_[ind, :, :]
+                label[j] = self.label_[ind]
 
                 # generate video
                 for i in xrange(self.seq_length_):
@@ -504,16 +533,21 @@ class BouncingMNISTDataHandler(object):
                     bottom = top + self.digit_size_
                     right = left + self.digit_size_
 
+                    #                     digit_image_t = transform_img(
+                    #                         digit_image, angles[i, j * self.num_digits_ + n],
+                    #                         x_scales[i, j * self.num_digits_ + n],
+                    #                         y_scales[i, j * self.num_digits_ + n],
+                    #                         val_scales[i, j * self.num_digits_ + n])
+
                     digit_image_t = transform_img(
-                        digit_image, angles[i, j * self.num_digits_ + n],
-                        x_scales[i, j * self.num_digits_ + n],
-                        y_scales[i, j * self.num_digits_ + n],
-                        val_scales[i, j * self.num_digits_ + n])
+                        digit_image, angles[i, j * self.num_digits_ + n], 1.0,
+                        1.0, 1.0)
 
                     data[j, i, top:bottom, left:right] = self.Overlap(
                         data[j, i, top:bottom, left:right], digit_image_t)
 
-        return data.reshape(self.batch_size_, -1), None
+        #return data.reshape(self.batch_size_, -1), None
+        return data.reshape(self.batch_size_, -1), label
 
     def DisplayData(self,
                     data,
@@ -568,31 +602,31 @@ class BouncingMNISTDataHandler(object):
             plt.savefig(output_file1, bbox_inches='tight')
 
         # create figure for reconstuction and future sequences
-        plt.figure(2 * fig + 1, figsize=(20, 1))
-        plt.clf()
-        for i in xrange(self.seq_length_):
-            if rec is not None and i < enc_seq_length:
-                plt.subplot(num_rows, self.seq_length_, i + 1)
-                plt.imshow(
-                    rec[rec.shape[0] - i - 1, :, :],
-                    cmap=plt.cm.gray,
-                    interpolation="nearest")
-            if fut is not None and i >= enc_seq_length:
-                plt.subplot(num_rows, self.seq_length_, i + 1)
-                plt.imshow(
-                    fut[i - enc_seq_length, :, :],
-                    cmap=plt.cm.gray,
-                    interpolation="nearest")
-            plt.axis('off')
-        plt.draw()
-        if output_file2 is not None:
-            print output_file2
-            plt.savefig(output_file2, bbox_inches='tight')
-        else:
-            plt.pause(0.1)
+        #         plt.figure(2 * fig + 1, figsize=(20, 1))
+        #         plt.clf()
+        #         for i in xrange(self.seq_length_):
+        #             if rec is not None and i < enc_seq_length:
+        #                 plt.subplot(num_rows, self.seq_length_, i + 1)
+        #                 plt.imshow(
+        #                     rec[rec.shape[0] - i - 1, :, :],
+        #                     cmap=plt.cm.gray,
+        #                     interpolation="nearest")
+        #             if fut is not None and i >= enc_seq_length:
+        #                 plt.subplot(num_rows, self.seq_length_, i + 1)
+        #                 plt.imshow(
+        #                     fut[i - enc_seq_length, :, :],
+        #                     cmap=plt.cm.gray,
+        #                     interpolation="nearest")
+        #             plt.axis('off')
+        #         plt.draw()
+        #         if output_file2 is not None:
+        #             print output_file2
+        #             plt.savefig(output_file2, bbox_inches='tight')
+        #         else:
+        #             plt.pause(0.1)
 
 
-# video patches loaded from some file
+        # video patches loaded from some file
 class VideoPatchDataHandler(object):
     def __init__(self, data_pb):
         self.seq_length_ = data_pb.num_frames

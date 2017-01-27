@@ -60,7 +60,7 @@ def main():
     f = h5py.File('./data/mnist.h5')
     data_ = f['train'].value.reshape(-1, 28, 28)
     img = numpy.squeeze(data_[2, :, :]) * 255.0
-    img_t = transform_img(img, 15, 0.8, 1.2, 1.2)
+    img_t = transform_img(img, -15, 1, 1, 1)
 
     im = Image.fromarray(img + 10.0).convert('RGB')
     im.save("original.png")

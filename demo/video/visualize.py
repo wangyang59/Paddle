@@ -16,5 +16,12 @@ dataHandler = data_handler.BouncingMNISTDataHandler(
     num_frames, batch_size, image_size, num_digits, step_length,
     "./data/mnist.h5")
 
-#data = dataHandler.GetBatch()[0]
-dataHandler.DisplayData(data, case_id=0, output_file="rec")
+# angles = dataHandler.GetRandomValueSeq(dataHandler.batch_size_ * dataHandler.num_digits_,
+#                                 -15, 15)
+# 
+# case_id = 11
+# data, label = dataHandler.GetBatch()
+# print "label=%s" % label[case_id]
+dataHandler.DisplayData(data, case_id=11, output_file="rec1")
+dataHandler.DisplayData(data, case_id=22, output_file="rec2")
+dataHandler.DisplayData(data, case_id=33, output_file="rec3")
