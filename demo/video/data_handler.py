@@ -464,10 +464,10 @@ class BouncingMNISTDataHandler(object):
         length = self.seq_length_
 
         # Initial position uniform random inside the box.
-        x = np.random.rand(batch_size)
+        x = np.zeros(batch_size) + 0.5
 
         # Choose a random velocity. between -0.1 and 0.1
-        v_x = (np.random.rand(batch_size) - 0.5) * 0.4
+        v_x = (np.random.rand(batch_size) - 0.5) * 0.1
 
         real_x = np.zeros((length, batch_size))
         for i in xrange(length):
@@ -501,11 +501,11 @@ class BouncingMNISTDataHandler(object):
         angles = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
                                         -15, 15)
         x_scales = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
-                                          0.8, 1.2)
+                                          0.9, 1.1)
         y_scales = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
-                                          0.8, 1.2)
+                                          0.9, 1.1)
         val_scales = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
-                                            0.8, 1.2)
+                                            0.9, 1.1)
 
         # minibatch data
         data = np.zeros(
@@ -540,8 +540,9 @@ class BouncingMNISTDataHandler(object):
                     #                         val_scales[i, j * self.num_digits_ + n])
 
                     digit_image_t = transform_img(
-                        digit_image, angles[i, j * self.num_digits_ + n], 1.0,
-                        1.0, 1.0)
+                        digit_image, angles[i, j * self.num_digits_ + n],
+                        x_scales[i, j * self.num_digits_ + n],
+                        y_scales[i, j * self.num_digits_ + n], 1.0)
 
                     data[j, i, top:bottom, left:right] = self.Overlap(
                         data[j, i, top:bottom, left:right], digit_image_t)
