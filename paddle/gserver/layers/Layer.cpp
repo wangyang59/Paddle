@@ -354,16 +354,12 @@ void Layer::backwardActivation() {
   /* Do error clipping */
   if (config_.error_clipping_threshold() > 0.0f) {
     if (FLAGS_log_error_clipping) {
-      if (FLAGS_use_gpu) {
-        GpuVector outGradVec(0, nullptr);
-      } else {
-        CpuVector outGradVec(0, nullptr);
-      }
-      outGradVec.subVecFrom(
+      VectorPtr outGradVecPtr = Vector::create(nullptr, 0, FLAGS_use_gpu);
+      outGradVecPtr->subVecFrom(
           output_.grad->getData(), 0, output_.grad->getElementCnt());
-      real maxAbsGrad = outGradVec.getAbsMax();
+      real maxAbsGrad = outGradVecPtr->getAbsMax();
       if (maxAbsGrad > config_.error_clipping_threshold()) {
-        real avgAbsGrad = outGradVec.getAbsSum() / outGradVec.getSize();
+        real avgAbsGrad = outGradVecPtr->getAbsSum() / outGradVecPtr->getSize();
         LOG(INFO) << " layer=" << config_.name() << " need clipping,"
                   << " max error=" << maxAbsGrad << " avg error=" << avgAbsGrad;
       }
