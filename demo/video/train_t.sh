@@ -15,11 +15,11 @@
 set -e
 
 paddle train \
---config='./train_t.conf' \
+--config='./transfer_conf.py' \
 --save_dir='./model_t' \
 --use_gpu=1 \
 --gpu_id=0 \
---num_passes=200 \
+--num_passes=500 \
 --show_parameter_stats_period=1000 \
 --trainer_count=4 \
 --log_period=100 \

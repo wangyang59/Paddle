@@ -14,9 +14,10 @@ define_py_data_sources2(
 #     learning_method=MomentumOptimizer(0.9),
 #     regularization=L2Regularization(0.0005 * 128))
 
-settings(learning_method=AdamOptimizer(), batch_size=64, learning_rate=5e-4)
+settings(learning_method=AdamOptimizer(), batch_size=64, learning_rate=1e-3)
 
 loaded_param_attr = ParamAttr(is_static=True)
+#loaded_param_attr = ParamAttr(learning_rate=0)
 img_size = 28
 
 data_size = img_size * img_size
@@ -75,19 +76,36 @@ conv3 = conv_bn(
     param_attr_bn=loaded_param_attr,
     bn=False)
 
-pooled = img_pool_layer(
+pooled3 = img_pool_layer(
     input=conv3,
     num_channels=features_num * 4,
     stride=1,
     pool_size=4,
     pool_type=MaxPooling())
 
+pooled2 = img_pool_layer(
+    input=conv2,
+    num_channels=features_num * 2,
+    stride=1,
+    pool_size=4,
+    pool_type=MaxPooling())
+
+pooled1 = img_pool_layer(
+    input=conv1,
+    num_channels=features_num,
+    stride=1,
+    pool_size=4,
+    pool_type=MaxPooling())
+
 hidden = fc_layer(
-    input=pooled,
-    size=features_num,
+    input=concat_layer([pooled1, pooled2, pooled3]),
+    #input=img,
+    #input=pooled3,
+    size=features_num * 16,
     bias_attr=bias_attr,
     param_attr=param_attr,
-    act=ReluActivation())
+    act=ReluActivation(),
+    layer_attr=ExtraAttr(drop_rate=0.5))
 
 prob = fc_layer(
     input=hidden,
