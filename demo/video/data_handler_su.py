@@ -377,17 +377,21 @@ class BouncingMNISTDataHandler(object):
         f = h5py.File(mnist_data_file)
         self.data_ = f[file_name].value.reshape(-1, 28, 28)
         self.label_ = f[file_name + '_labels'].value
-        self.weight_ = np.zeros(self.label_.shape[0])
-        sample_num = 100
-        cnt = {}
-        for i in xrange(self.label_.shape[0]):
-            lbl = self.label_[i]
-            if lbl in cnt:
-                cnt[lbl] += 1
-            else:
-                cnt[lbl] = 1
-            if cnt[lbl] <= sample_num:
-                self.weight_[i] = 1.0
+
+        if file_name == 'train':
+            self.weight_ = np.zeros(self.label_.shape[0])
+            sample_num = 100
+            cnt = {}
+            for i in xrange(self.label_.shape[0]):
+                lbl = self.label_[i]
+                if lbl in cnt:
+                    cnt[lbl] += 1
+                else:
+                    cnt[lbl] = 1
+                if cnt[lbl] <= sample_num:
+                    self.weight_[i] = 1.0
+        else:
+            self.weight_ = np.ones(self.label_.shape[0])
 
         f.close()
 

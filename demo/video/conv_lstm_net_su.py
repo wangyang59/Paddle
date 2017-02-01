@@ -391,7 +391,10 @@ def conv_lstm_net(is_generating):
         #outputs(trg_image)
     else:
         cost1 = classification_cost(input=prob, label=lbl, weight=wgt)
+        #cost1 = classification_cost(input=prob, label=lbl)
         cost2 = regression_cost(input=convt3, label=trg_image)
+        #sum_evaluator(cost1, name="cost1")
+        #sum_evaluator(cost2, name="cost2")
         cost = addto_layer(
             input=[cost1, cost2], act=LinearActivation(), bias_attr=False)
         outputs(cost)

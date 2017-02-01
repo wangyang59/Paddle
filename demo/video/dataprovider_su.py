@@ -61,5 +61,5 @@ def process(settings, file_name):
                 'source_image_seq': seq[0:10],
                 'target_image_seq': seq[10:],
                 'label': [label[j]] * 10,
-                'weight': [[wgt] for jj in range(10)]
+                'weight': [np.array([wgt]) for jj in range(10)]
             }
