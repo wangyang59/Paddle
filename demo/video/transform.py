@@ -57,11 +57,32 @@ def transform_img(img,
 
 
 def main():
+    i = 10
     f = h5py.File('./data/mnist.h5')
-    data_ = f['train'].value.reshape(-1, 28, 28)
-    img = numpy.squeeze(data_[2, :, :]) * 255.0
+    data_ = f['train_full'].value.reshape(-1, 28, 28)
+    img = numpy.squeeze(data_[i, :, :]) * 255.0
     img_t = transform_img(img, -15, 1, 1, 1)
-
+    #     filename = './data2/raw_data/train'
+    #      
+    #     imgf = filename + "-images-idx3-ubyte"
+    #     labelf = filename + "-labels-idx1-ubyte"
+    #     f = open(imgf, "rb")
+    #     l = open(labelf, "rb")
+    #  
+    #     f.read(16)
+    #     l.read(8)
+    #     n = 60000
+    #     images = numpy.fromfile(f, 'ubyte', count=n * 28 * 28).reshape((n, 28, 28)).astype('float32')
+    #     images = images / 255.0
+    #      
+    #     img = numpy.squeeze(images[i, :, :]) * 255.0
+    #     img_t = transform_img(img, -15, 1, 1, 1)
+    #      
+    #     labels = numpy.fromfile(l, 'ubyte', count=n).astype("int")
+    #     print(labels[i])
+    #     f.close()
+    #     l.close()
+    #     
     im = Image.fromarray(img + 10.0).convert('RGB')
     im.save("original.png")
     im = Image.fromarray(img_t + 10.0).convert('RGB')

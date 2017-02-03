@@ -101,6 +101,7 @@ hidden = fc_layer(
     input=concat_layer([pooled1, pooled2, pooled3]),
     #input=img,
     #input=pooled3,
+    name='fc1_t',
     size=features_num * 16,
     bias_attr=bias_attr,
     param_attr=param_attr,
@@ -109,6 +110,7 @@ hidden = fc_layer(
 
 prob = fc_layer(
     input=hidden,
+    name='fc2_t',
     size=label_size,
     bias_attr=bias_attr,
     param_attr=param_attr,

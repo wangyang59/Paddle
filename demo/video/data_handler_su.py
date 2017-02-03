@@ -364,7 +364,7 @@ class BouncingMNISTDataHandler(object):
                  num_digits,
                  step_length,
                  mnist_data_file,
-                 file_name='train'):
+                 file_name='train_full'):
         self.seq_length_ = num_frames
         self.batch_size_ = batch_size
         self.image_size_ = image_size
@@ -378,7 +378,7 @@ class BouncingMNISTDataHandler(object):
         self.data_ = f[file_name].value.reshape(-1, 28, 28)
         self.label_ = f[file_name + '_labels'].value
 
-        if file_name == 'train':
+        if 'train' in file_name:
             self.weight_ = np.zeros(self.label_.shape[0])
             sample_num = 100
             cnt = {}
@@ -529,7 +529,8 @@ class BouncingMNISTDataHandler(object):
              self.image_size_),
             dtype=np.float32)
         label = np.zeros((self.batch_size_), dtype=np.int)
-        weight = np.zeros((self.batch_size_), dtype=np.float32)
+        weight = np.zeros((self.batch_size_))
+        #weight = [0.0] * self.batch_size_
 
         for j in xrange(self.batch_size_):
             for n in xrange(self.num_digits_):
@@ -551,14 +552,13 @@ class BouncingMNISTDataHandler(object):
                     bottom = top + self.digit_size_
                     right = left + self.digit_size_
 
-                    #                     digit_image_t = transform_img(
-                    #                         digit_image, angles[i, j * self.num_digits_ + n],
-                    #                         x_scales[i, j * self.num_digits_ + n],
-                    #                         y_scales[i, j * self.num_digits_ + n],
-                    #                         val_scales[i, j * self.num_digits_ + n])
+                    digit_image_t = transform_img(
+                        digit_image, angles[i, j * self.num_digits_ + n],
+                        x_scales[i, j * self.num_digits_ + n],
+                        y_scales[i, j * self.num_digits_ + n], 1.0)
 
                     data[j, i, top:bottom, left:right] = self.Overlap(
-                        data[j, i, top:bottom, left:right], digit_image)
+                        data[j, i, top:bottom, left:right], digit_image_t)
 
         #return data.reshape(self.batch_size_, -1), None
         return data.reshape(self.batch_size_, -1), label, weight

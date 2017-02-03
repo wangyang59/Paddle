@@ -25,6 +25,6 @@ paddle train \
 --log_period=100 \
 --dot_period=10 \
 --log_error_clipping=false \
---init_model_path='./model4/pass-00199' \
+--init_model_path='./model/pass-00084' \
 --load_missing_parameter_strategy='rand' \
 2>&1 | tee './train_t.log'

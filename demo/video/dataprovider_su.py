@@ -26,7 +26,7 @@ def hook(settings, src_path, file_list, **kwargs):
 
     settings.dataHandler_train = data_handler.BouncingMNISTDataHandler(
         num_frames, batch_size, image_size, num_digits, step_length, src_path,
-        'train')
+        'train_full')
 
     settings.dataHandler_test = data_handler.BouncingMNISTDataHandler(
         num_frames, batch_size, image_size, num_digits, step_length, src_path,
@@ -45,7 +45,7 @@ def hook(settings, src_path, file_list, **kwargs):
 @provider(init_hook=hook, pool_size=100 * 50)
 def process(settings, file_name):
     if "train" in file_name:
-        n = 100
+        n = 1000
     else:
         n = 200
 
@@ -56,10 +56,11 @@ def process(settings, file_name):
             batch, label, weight = settings.dataHandler_test.GetBatch()
         for j in xrange(batch.shape[0]):
             seq = list(batch[j].reshape(-1, settings.src_dim))
-            wgt = weight[j]
+            wgt = weight[j] * 50.0
             yield {
                 'source_image_seq': seq[0:10],
                 'target_image_seq': seq[10:],
                 'label': [label[j]] * 10,
-                'weight': [np.array([wgt]) for jj in range(10)]
+                #'weight': [np.array([wgt]) for jj in range(10)]
+                'weight': [[wgt] for jj in range(10)]
             }
