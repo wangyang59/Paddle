@@ -101,17 +101,21 @@ void TensorLayer::backward(const UpdateCallback& callback) {
   MatrixPtr input1 = getInputValue(0);
   MatrixPtr input2 = getInputValue(1);
   MatrixPtr oGrad = getOutputGrad();
-  MatrixPtr tmpMat = Matrix::create(input1->getHeight(),
-                                    input1->getWidth(),
-                                    /* trans= */ false,
-                                    input1->useGpu());
+  MatrixPtr tmpMat1 = Matrix::create(input1->getHeight(),
+                                     input1->getWidth(),
+                                     /* trans= */ false,
+                                     input1->useGpu());
+  MatrixPtr tmpMat2 = Matrix::create(input2->getHeight(),
+                                     input2->getWidth(),
+                                     /* trans= */ false,
+                                     input2->useGpu());
 
   /* trans(grad * e1) * e2 */ {
     REGISTER_TIMER_INFO("TensorGradMulTimer", getName().c_str());
     for (size_t i = 0; i < getSize(); ++i) {
       if (weights_[i]->getWGrad()) {
-        tmpMat->rowScale(i, *input1, *oGrad);
-        MatrixPtr input1_T = tmpMat->getTranspose();
+        tmpMat1->rowScale(i, *input1, *oGrad);
+        MatrixPtr input1_T = tmpMat1->getTranspose();
         weights_[i]->getWGrad()->mul(*input1_T, *input2, 1, 1);
       }
     }
@@ -128,13 +132,13 @@ void TensorLayer::backward(const UpdateCallback& callback) {
       MatrixPtr weights = weights_[i]->getW();
 
       if (NULL != preGrad1) { /* (grad * e2) * trans(W) */
-        tmpMat->rowScale(i, *input2, *oGrad);
+        tmpMat2->rowScale(i, *input2, *oGrad);
         MatrixPtr weights_T = weights->getTranspose();
-        preGrad1->mul(*tmpMat, *weights_T, 1, 1);
+        preGrad1->mul(*tmpMat2, *weights_T, 1, 1);
       }
       if (NULL != preGrad2) { /* (grad * e1) * W */
-        tmpMat->rowScale(i, *input1, *oGrad);
-        preGrad2->mul(*tmpMat, *weights, 1, 1);
+        tmpMat1->rowScale(i, *input1, *oGrad);
+        preGrad2->mul(*tmpMat1, *weights, 1, 1);
       }
     }
   }
