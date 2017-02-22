@@ -364,7 +364,8 @@ class BouncingMNISTDataHandler(object):
                  num_digits,
                  step_length,
                  mnist_data_file,
-                 file_name='train_full'):
+                 file_name='train_full',
+                 semi=True):
         self.seq_length_ = num_frames
         self.batch_size_ = batch_size
         self.image_size_ = image_size
@@ -373,6 +374,7 @@ class BouncingMNISTDataHandler(object):
         self.dataset_size_ = 10000  # The dataset is really infinite. This is just for validation.
         self.digit_size_ = 28
         self.frame_size_ = self.image_size_**2
+        self.semi = semi
 
         f = h5py.File(mnist_data_file)
         self.data_ = f[file_name].value.reshape(-1, 28, 28)
@@ -383,37 +385,22 @@ class BouncingMNISTDataHandler(object):
             sample_num = 100
             cnt = {}
             for i in xrange(self.label_.shape[0]):
-                lbl = self.label_[i]
-                if lbl in cnt:
-                    cnt[lbl] += 1
-                else:
-                    cnt[lbl] = 1
-                if cnt[lbl] <= sample_num:
-                    self.weight_[i] = 1.0
+                if np.random.rand() < 1.0:
+                    lbl = self.label_[i]
+                    if lbl in cnt:
+                        cnt[lbl] += 1
+                    else:
+                        cnt[lbl] = 1
+                    if cnt[lbl] <= sample_num:
+                        self.weight_[i] = 1.0
+            if not self.semi:
+                self.data_ = self.data_[self.weight_ == 1.0, :, :]
+                self.label_ = self.label_[self.weight_ == 1.0]
+                self.weight_ = self.weight_[self.weight_ == 1.0]
         else:
             self.weight_ = np.ones(self.label_.shape[0])
 
         f.close()
-
-        #         if file_name != 'train':
-        #             self.data_ = self.data0_
-        #             self.label_ = self.label0_
-        #         else:
-        #             sample_num = 100
-        #             cnt = {}
-        #             self.data_ = np.zeros((sample_num*10, 28, 28), dtype=np.float32)
-        #             self.label_ = np.zeros((sample_num*10), dtype=np.int)
-        #             idx = 0
-        #             for i in xrange(self.data0_.shape[0]):
-        #                 lbl = self.label0_[i]
-        #                 if lbl in cnt:
-        #                     cnt[lbl] += 1
-        #                 else:
-        #                     cnt[lbl] = 1
-        #                 if cnt[lbl] <= sample_num:
-        #                    self.data_[idx, :, :] = self.data0_[i, :, :]
-        #                    self.label_[idx] = self.label0_[i]
-        #                    idx += 1
 
         self.indices_ = np.arange(self.data_.shape[0])
         self.row_ = 0
@@ -441,6 +428,8 @@ class BouncingMNISTDataHandler(object):
         # Initial position uniform random inside the box.
         y = np.random.rand(batch_size)
         x = np.random.rand(batch_size)
+        #y = np.ones(batch_size) * 0.5
+        #x = np.ones(batch_size) * 0.5
 
         # Choose a random velocity.
         theta = np.random.rand(batch_size) * 2 * np.pi
@@ -490,15 +479,6 @@ class BouncingMNISTDataHandler(object):
             # Take a step along velocity.
             x += v_x
 
-            # Bounce off edges.
-            #             for j in xrange(batch_size):
-            #                 if x[j] <= 0:
-            #                     x[j] = 0
-            #                     v_x[j] = -v_x[j]
-            #                 if x[j] >= 1.0:
-            #                     x[j] = 1.0
-            #                     v_x[j] = -v_x[j]
-
             real_x[i, :] = x
 
         # Scale to the size of the canvas.
@@ -514,14 +494,14 @@ class BouncingMNISTDataHandler(object):
         start_y, start_x = self.GetRandomTrajectory(self.batch_size_ *
                                                     self.num_digits_)
 
-        angles = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
-                                        -15, 15)
-        x_scales = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
-                                          0.9, 1.1)
-        y_scales = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
-                                          0.9, 1.1)
-        val_scales = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
-                                            0.9, 1.1)
+        #angles = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
+        #                                -15, 15)
+        #x_scales = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
+        #                                  0.9, 1.1)
+        #y_scales = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
+        #                                  0.9, 1.1)
+        #val_scales = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
+        #                                    0.9, 1.1)
 
         # minibatch data
         data = np.zeros(
@@ -534,7 +514,6 @@ class BouncingMNISTDataHandler(object):
 
         for j in xrange(self.batch_size_):
             for n in xrange(self.num_digits_):
-
                 # get random digit from dataset
                 ind = self.indices_[self.row_]
                 self.row_ += 1
@@ -547,20 +526,24 @@ class BouncingMNISTDataHandler(object):
 
                 # generate video
                 for i in xrange(self.seq_length_):
-                    top = start_y[i, j * self.num_digits_ + n]
-                    left = start_x[i, j * self.num_digits_ + n]
+                    if self.semi:
+                        top = start_y[i, j * self.num_digits_ + n]
+                        left = start_x[i, j * self.num_digits_ + n]
+                    else:
+                        top = 18
+                        left = 18
                     bottom = top + self.digit_size_
                     right = left + self.digit_size_
 
-                    digit_image_t = transform_img(
-                        digit_image, angles[i, j * self.num_digits_ + n],
-                        x_scales[i, j * self.num_digits_ + n],
-                        y_scales[i, j * self.num_digits_ + n], 1.0)
-
+                    #digit_image_t = transform_img(
+                    #    digit_image, angles[i, j * self.num_digits_ + n],
+                    #    x_scales[i, j * self.num_digits_ + n],
+                    #    y_scales[i, j * self.num_digits_ + n], 1.0)
                     data[j, i, top:bottom, left:right] = self.Overlap(
-                        data[j, i, top:bottom, left:right], digit_image_t)
+                        data[j, i, top:bottom, left:right], digit_image)
 
         #return data.reshape(self.batch_size_, -1), None
+
         return data.reshape(self.batch_size_, -1), label, weight
 
     def DisplayData(self,

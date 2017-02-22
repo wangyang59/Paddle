@@ -15,7 +15,7 @@
 set -e
 
 paddle train \
---config='./transfer_conf.py' \
+--config='./train_t.conf' \
 --save_dir='./model_t' \
 --use_gpu=1 \
 --gpu_id=0 \
@@ -25,6 +25,6 @@ paddle train \
 --log_period=100 \
 --dot_period=10 \
 --log_error_clipping=false \
---init_model_path='./model/pass-00084' \
+--init_model_path='./model/pass-00195' \
 --load_missing_parameter_strategy='rand' \
 2>&1 | tee './train_t.log'

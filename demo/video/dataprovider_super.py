@@ -13,25 +13,44 @@
 # limitations under the License.
 
 from paddle.trainer.PyDataProvider2 import *
-import data_handler
+import data_handler_su as data_handler
 import numpy as np
 
 
 def hook(settings, src_path, file_list, **kwargs):
-    num_frames = 20
+    num_frames = 2
     batch_size = 50
     image_size = 64
     num_digits = 1
-    step_length = 0.1
+    step_length = 0.0
 
-    settings.dataHandler = data_handler.BouncingMNISTDataHandler(
-        num_frames, batch_size, image_size, num_digits, step_length, src_path)
+    settings.dataHandler_train = data_handler.BouncingMNISTDataHandler(
+        num_frames,
+        batch_size,
+        image_size,
+        num_digits,
+        step_length,
+        src_path,
+        'train_full',
+        semi=False)
+
+    settings.dataHandler_test = data_handler.BouncingMNISTDataHandler(
+        num_frames,
+        batch_size,
+        image_size,
+        num_digits,
+        step_length,
+        src_path,
+        'test',
+        semi=False)
 
     settings.src_dim = image_size * image_size
 
     settings.slots = {
         'source_image_seq': dense_vector_sequence(settings.src_dim),
-        'target_image_seq': dense_vector_sequence(settings.src_dim)
+        'target_image_seq': dense_vector_sequence(settings.src_dim),
+        'label': integer_value_sequence(10),
+        'weight': dense_vector_sequence(1)
     }
 
 
@@ -43,7 +62,16 @@ def process(settings, file_name):
         n = 200
 
     for i in xrange(n):
-        batch = settings.dataHandler.GetBatch()[0]
+        if 'train' in file_name:
+            batch, label, weight = settings.dataHandler_train.GetBatch()
+        else:
+            batch, label, weight = settings.dataHandler_test.GetBatch()
         for j in xrange(batch.shape[0]):
             seq = list(batch[j].reshape(-1, settings.src_dim))
-            yield {'source_image_seq': seq[0:10], 'target_image_seq': seq[10:]}
+            wgt = weight[j] * 1.0
+            yield {
+                'source_image_seq': seq[0:1],
+                'target_image_seq': seq[1:],
+                'label': [label[j]] * 1,
+                'weight': [[wgt] for jj in range(1)]
+            }
