@@ -16,7 +16,7 @@ set -e
 
 paddle train \
 --config='./train2.conf' \
---save_dir='./model' \
+--save_dir='./model_ent2' \
 --use_gpu=1 \
 --gpu_id=0 \
 --num_passes=200 \
@@ -25,7 +25,8 @@ paddle train \
 --log_period=100 \
 --dot_period=10 \
 --log_error_clipping=false \
-2>&1 | tee './train.log'
+--init_model_path='./model_ent/pass-00181' \
+2>&1 | tee './train_ent2.log'
 
 # --init_model_path='./model/pass-00067' \
 # --load_missing_parameter_strategy='rand' \

@@ -85,7 +85,8 @@ def conv_lstm_net(is_generating):
     trg_image = data_layer(name='target_image_seq', size=64 * 64)
     lbl = data_layer(name="label", size=label_size)
     wgt = data_layer(name='weight', size=1)
-    inputs(src_image, trg_image, lbl, wgt)
+    invWgt = data_layer(name='invWeight', size=1)
+    inputs(src_image, trg_image, lbl, wgt, invWgt)
 
     param_attr = ParamAttr(initial_mean=0.0, initial_std=0.02)
     bias_attr = ParamAttr(initial_mean=0.0, initial_std=0.0)
@@ -132,7 +133,7 @@ def conv_lstm_net(is_generating):
 
     hidden1 = fc_layer(
         input=conv3,
-        size=features_num * 2,
+        size=features_num * 4,
         bias_attr=bias_attr,
         param_attr=param_attr,
         act=ReluActivation())
@@ -173,13 +174,6 @@ def conv_lstm_net(is_generating):
         param_attr=param_attr,
         act=ReluActivation())
 
-    #     avgId = pooling_layer(id, 
-    #                   pooling_type=AvgPooling(), 
-    #                   agg_level=AggregateLevel.EACH_TIMESTEP)
-    #     
-    #     avgIdSeq = expand_layer(input=avgId,
-    #                             expand_as=id)
-
     lstm_encode_step1 = create_lstm_encode_step(features_num * 2, "1")
     encoder_layer1, cell_layer1 = recurrent_group(
         name="encoder_1", step=lstm_encode_step1, input=pose)
@@ -218,17 +212,17 @@ def conv_lstm_net(is_generating):
             input=first_seq(pose), expand_as=pose)])
 
     def deconv(ipt, name):
-        hidden5 = fc_layer(
-            input=ipt,
-            size=features_num * 2,
-            bias_attr=ParamAttr(
-                initial_mean=0.0, initial_std=0.0, name="fc1_b"),
-            param_attr=ParamAttr(
-                initial_mean=0.0, initial_std=0.02, name="fc1_w"),
-            act=ReluActivation())
+        #         hidden5 = fc_layer(
+        #             input=ipt,
+        #             size=features_num * 2,
+        #             bias_attr=ParamAttr(
+        #                 initial_mean=0.0, initial_std=0.0, name="fc1_b"),
+        #             param_attr=ParamAttr(
+        #                 initial_mean=0.0, initial_std=0.02, name="fc1_w"),
+        #             act=ReluActivation())
 
         hidden4 = fc_layer(
-            input=hidden5,
+            input=ipt,
             size=features_num * 4 * 8 * 8,
             bias_attr=ParamAttr(
                 initial_mean=0.0, initial_std=0.0, name="fc2_b"),
@@ -311,6 +305,10 @@ def conv_lstm_net(is_generating):
         #    bias_attr=bias_attr,
         #    param_attr=param_attr,
         #    act=SoftmaxActivation())
+        with mixed_layer() as entropy:
+            entropy += dotmul_operator(
+                id, layer_math.log(id + 1e-10), scale=-1.0)
+        cost4 = sum_cost(entropy) * invWgt
 
         cost3 = classification_cost(input=id, label=lbl, weight=wgt)
         cost1 = regression_cost(input=future, label=trg_image)
@@ -318,7 +316,9 @@ def conv_lstm_net(is_generating):
             input=recon,
             label=expand_layer(
                 input=first_seq(src_image), expand_as=src_image))
+
         sum_evaluator(cost1, name="cost1")
         sum_evaluator(cost2, name="cost2")
         sum_evaluator(cost3, name="cost3")
-        outputs(cost1, cost2, cost3)
+        sum_evaluator(cost4, name="cost4")
+        outputs(cost1, cost2, cost3, cost4)

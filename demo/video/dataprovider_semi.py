@@ -39,7 +39,8 @@ def hook(settings, src_path, is_generating, file_list, **kwargs):
         'source_image_seq': dense_vector_sequence(settings.src_dim),
         'target_image_seq': dense_vector_sequence(settings.src_dim),
         'label': integer_value_sequence(10),
-        'weight': dense_vector_sequence(1)
+        'weight': dense_vector_sequence(1),
+        'invWeight': dense_vector_sequence(1)
     }
 
 
@@ -62,9 +63,11 @@ def process(settings, file_name):
         for j in xrange(batch.shape[0]):
             seq = list(batch[j].reshape(-1, settings.src_dim))
             wgt = weight[j] * 500.0
+            invWgt = (1.0 - weight[j]) * 500.0
             yield {
                 'source_image_seq': seq[0:10],
                 'target_image_seq': seq[10:],
                 'label': [label[j]] * 10,
-                'weight': [[wgt] for jj in range(10)]
+                'weight': [[wgt] for jj in range(10)],
+                'invWeight': [[invWgt] for jj in range(10)]
             }

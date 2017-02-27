@@ -74,7 +74,7 @@ def conv_lstm_net():
 
     hidden1 = fc_layer(
         input=conv3,
-        size=features_num * 2,
+        size=features_num * 4,
         bias_attr=loaded_param_attr,
         param_attr=loaded_param_attr,
         act=ReluActivation())
@@ -118,5 +118,5 @@ def conv_lstm_net():
         param_attr=param_attr,
         act=SoftmaxActivation())
 
-    cost = classification_cost(input=prob, label=lbl, weight=wgt)
+    cost = classification_cost(input=id, label=lbl, weight=wgt)
     outputs(cost)
