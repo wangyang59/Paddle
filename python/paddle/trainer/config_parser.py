@@ -1435,7 +1435,8 @@ class LayerBase(object):
 
         g_current_submodel.layer_names.append(self.config.name)
 
-        if self.config.type != 'data' and g_pass_height_width:
+        if self.config.type != 'data' and self.config.type != 'fc' \
+            and g_pass_height_width:
             height = self.get_input_layer(0).height
             width = self.get_input_layer(0).width
             if height and width:
