@@ -57,13 +57,13 @@ def process(settings, file_name):
     for i in xrange(n):
         if 'train' in file_name:
             batch, label, weight = settings.dataHandler_train.GetBatch()
-            #batch[0:10, :] = batch[0:10, :] + np.random.normal(size=(10, batch.shape[1]), scale = 0.2)
+            #batch[0:10, :] = batch[0:10, :] + np.random.normal(size=(10, batch.shape[1]), scale = 0.1)
         else:
             batch, label, weight = settings.dataHandler_test.GetBatch()
         for j in xrange(batch.shape[0]):
             seq = list(batch[j].reshape(-1, settings.src_dim))
             wgt = weight[j] * 500.0
-            invWgt = (1.0 - weight[j]) * 500.0
+            invWgt = (1.0 - weight[j]) * 50.0
             yield {
                 'source_image_seq': seq[0:10],
                 'target_image_seq': seq[10:],

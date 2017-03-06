@@ -131,9 +131,22 @@ def conv_lstm_net(is_generating):
         param_attr_bn=param_attr_bn,
         bn=False)
 
+    conv4 = conv_bn(
+        conv3,
+        channels=features_num * 4,
+        imgSize=8,
+        num_filters=features_num * 8,
+        output_x=4,
+        stride=2,
+        name="conv4",
+        param_attr=param_attr,
+        bias_attr=bias_attr,
+        param_attr_bn=param_attr_bn,
+        bn=False)
+
     hidden1 = fc_layer(
-        input=conv3,
-        size=features_num * 4,
+        input=conv4,
+        size=features_num * 2,
         bias_attr=bias_attr,
         param_attr=param_attr,
         act=ReluActivation())
@@ -223,15 +236,34 @@ def conv_lstm_net(is_generating):
 
         hidden4 = fc_layer(
             input=ipt,
-            size=features_num * 4 * 8 * 8,
+            #size=features_num * 4 * 8 * 8,
+            size=features_num * 8 * 4 * 4,
             bias_attr=ParamAttr(
                 initial_mean=0.0, initial_std=0.0, name="fc2_b"),
             param_attr=ParamAttr(
                 initial_mean=0.0, initial_std=0.02, name="fc2_w"),
             act=ReluActivation())
 
-        convt1 = conv_bn(
+        convt0 = conv_bn(
             hidden4,
+            channels=features_num * 8,
+            output_x=4,
+            num_filters=features_num * 4,
+            imgSize=8,
+            stride=2,
+            name="convt0" + name,
+            param_attr=ParamAttr(
+                initial_mean=0.0, initial_std=0.02, name="convt0_w"),
+            bias_attr=ParamAttr(
+                initial_mean=0.0, initial_std=0.0, name="convt0_b"),
+            param_attr_bn=ParamAttr(
+                initial_mean=1.0, initial_std=0.02, name="convt0_bn"),
+            bn=False,
+            trans=True)
+
+        convt1 = conv_bn(
+            #hidden4,
+            convt0,
             channels=features_num * 4,
             output_x=8,
             num_filters=features_num * 2,
@@ -289,26 +321,33 @@ def conv_lstm_net(is_generating):
 
     if is_generating:
         outputs(concat_layer(input=[convt3, trg_image]))
-        #outputs(trg_image)
     else:
-        #hidden = fc_layer(
-        #    input=id,
-        #    size=features_num * 8,
-        #    bias_attr=bias_attr,
-        #    param_attr=param_attr,
-        #    act=ReluActivation(),
-        #    layer_attr=ExtraAttr(drop_rate=0.5))
-
-        #prob = fc_layer(
-        #    input=hidden,
-        #    size=label_size,
-        #    bias_attr=bias_attr,
-        #    param_attr=param_attr,
-        #    act=SoftmaxActivation())
         with mixed_layer() as entropy:
             entropy += dotmul_operator(
                 id, layer_math.log(id + 1e-10), scale=-1.0)
-        cost4 = sum_cost(entropy) * invWgt
+        cost5 = sum_cost(entropy) * invWgt
+        #         
+        #         id_bn = batch_norm_layer(
+        #             id,
+        #             bias_attr=bias_attr,
+        #             param_attr=param_attr_bn,
+        #             use_global_stats=False)
+        #         
+        #         shape_bn = batch_norm_layer(
+        #             shape,
+        #             bias_attr=bias_attr,
+        #             param_attr=param_attr_bn,
+        #             use_global_stats=False)
+        #         
+        #         pose_bn = batch_norm_layer(
+        #             pose,
+        #             bias_attr=bias_attr,
+        #             param_attr=param_attr_bn,
+        #             use_global_stats=False)
+        #         
+        #         cost4 = sum_cost(out_prod_layer(id_bn, shape_bn)) \
+        #                 + sum_cost(out_prod_layer(id_bn, pose_bn)) \
+        #                 + sum_cost(out_prod_layer(shape_bn, pose_bn))
 
         cost3 = classification_cost(input=id, label=lbl, weight=wgt)
         cost1 = regression_cost(input=future, label=trg_image)
@@ -320,5 +359,6 @@ def conv_lstm_net(is_generating):
         sum_evaluator(cost1, name="cost1")
         sum_evaluator(cost2, name="cost2")
         sum_evaluator(cost3, name="cost3")
-        sum_evaluator(cost4, name="cost4")
-        outputs(cost1, cost2, cost3, cost4)
+        #         sum_evaluator(cost4, name="cost4")
+        sum_evaluator(cost5, name="cost5")
+        outputs(cost1, cost2, cost3, cost5)

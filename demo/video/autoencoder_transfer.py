@@ -72,9 +72,22 @@ def conv_lstm_net():
         param_attr_bn=loaded_param_attr,
         bn=False)
 
+    conv4 = conv_bn(
+        conv3,
+        channels=features_num * 4,
+        imgSize=8,
+        num_filters=features_num * 8,
+        output_x=4,
+        stride=2,
+        name="conv4",
+        param_attr=param_attr,
+        bias_attr=bias_attr,
+        param_attr_bn=param_attr_bn,
+        bn=False)
+
     hidden1 = fc_layer(
-        input=conv3,
-        size=features_num * 4,
+        input=conv4,
+        size=features_num * 2,
         bias_attr=loaded_param_attr,
         param_attr=loaded_param_attr,
         act=ReluActivation())
