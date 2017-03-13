@@ -494,14 +494,14 @@ class BouncingMNISTDataHandler(object):
         start_y, start_x = self.GetRandomTrajectory(self.batch_size_ *
                                                     self.num_digits_)
 
-        #angles = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
-        #                                -15, 15)
-        #x_scales = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
-        #                                  0.9, 1.1)
-        #y_scales = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
-        #                                  0.9, 1.1)
-        #val_scales = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
-        #                                    0.9, 1.1)
+        angles = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
+                                        -15, 15)
+        x_scales = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
+                                          0.9, 1.1)
+        y_scales = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
+                                          0.9, 1.1)
+        #         val_scales = self.GetRandomValueSeq(self.batch_size_ * self.num_digits_,
+        #                                             0.9, 1.1)
 
         # minibatch data
         data = np.zeros(
@@ -529,16 +529,16 @@ class BouncingMNISTDataHandler(object):
                     if self.semi:
                         top = start_y[i, j * self.num_digits_ + n]
                         left = start_x[i, j * self.num_digits_ + n]
+                        digit_image = transform_img(
+                            digit_image, angles[i, j * self.num_digits_ + n],
+                            x_scales[i, j * self.num_digits_ + n],
+                            y_scales[i, j * self.num_digits_ + n], 1.0)
                     else:
                         top = 18
                         left = 18
                     bottom = top + self.digit_size_
                     right = left + self.digit_size_
 
-                    #digit_image_t = transform_img(
-                    #    digit_image, angles[i, j * self.num_digits_ + n],
-                    #    x_scales[i, j * self.num_digits_ + n],
-                    #    y_scales[i, j * self.num_digits_ + n], 1.0)
                     data[j, i, top:bottom, left:right] = self.Overlap(
                         data[j, i, top:bottom, left:right], digit_image)
 
