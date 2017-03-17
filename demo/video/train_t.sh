@@ -21,10 +21,10 @@ paddle train \
 --gpu_id=0 \
 --num_passes=500 \
 --show_parameter_stats_period=1000 \
---trainer_count=4 \
+--trainer_count=1 \
 --log_period=100 \
 --dot_period=10 \
 --log_error_clipping=false \
---init_model_path='./model5_ent/pass-00199' \
+--init_model_path='./model_ent5/pass-00131' \
 --load_missing_parameter_strategy='rand' \
 2>&1 | tee './train_t.log'

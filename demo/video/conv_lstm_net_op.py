@@ -219,12 +219,8 @@ def conv_lstm_net(is_generating):
     #                            size=features_num * 2,
     #                            param_attr=ParamAttr(initial_mean=0.0, initial_std=0.02, name="tensor_w"),
     #                            bias_attr=ParamAttr(initial_mean=0.0, initial_std=0.02, name="tensor_b"))
-    hidden2 = concat_layer([id, shape, new_pose])
-    hidden3 = concat_layer(
-        [id, shape, expand_layer(
-            input=first_seq(pose), expand_as=pose)])
 
-    def deconv(ipt, name):
+    def deconv(id, shape, pose):
         #         hidden5 = fc_layer(
         #             input=ipt,
         #             size=features_num * 2,
@@ -235,7 +231,7 @@ def conv_lstm_net(is_generating):
         #             act=ReluActivation())
 
         hidden4 = fc_layer(
-            input=ipt,
+            input=concat_layer([id, shape]),
             #size=features_num * 4 * 8 * 8,
             size=features_num * 8 * 4 * 4,
             bias_attr=ParamAttr(
@@ -244,80 +240,99 @@ def conv_lstm_net(is_generating):
                 initial_mean=0.0, initial_std=0.02, name="fc2_w"),
             act=ReluActivation())
 
-        convt0 = conv_bn(
-            hidden4,
-            channels=features_num * 8,
-            output_x=4,
-            num_filters=features_num * 4,
-            imgSize=8,
-            stride=2,
-            name="convt0" + name,
-            param_attr=ParamAttr(
-                initial_mean=0.0, initial_std=0.02, name="convt0_w"),
+        filter_size, padding = cal_filter_padding(8, 4, 2)
+        deconv_filter0 = fc_layer(
+            input=pose,
+            size=filter_size * filter_size * features_num * 4 * features_num *
+            8,
             bias_attr=ParamAttr(
                 initial_mean=0.0, initial_std=0.0, name="convt0_b"),
-            param_attr_bn=ParamAttr(
-                initial_mean=1.0, initial_std=0.02, name="convt0_bn"),
-            bn=False,
-            trans=True)
-
-        convt1 = conv_bn(
-            #hidden4,
-            convt0,
-            channels=features_num * 4,
-            output_x=8,
-            num_filters=features_num * 2,
-            imgSize=16,
-            stride=2,
-            name="convt1" + name,
             param_attr=ParamAttr(
-                initial_mean=0.0, initial_std=0.02, name="convt1_w"),
+                initial_mean=0.0, initial_std=0.02, name="convt0_w"),
+            act=LinearActivation())
+
+        with mixed_layer() as convt0:
+            convt0 += conv_operator(
+                img=hidden4,
+                filter=deconv_filter0,
+                filter_size=filter_size,
+                num_filters=features_num * 4,
+                num_channels=features_num * 8,
+                stride=2,
+                padding=padding,
+                trans=True)
+
+        filter_size, padding = cal_filter_padding(16, 8, 2)
+        deconv_filter1 = fc_layer(
+            input=pose,
+            size=filter_size * filter_size * features_num * 2 * features_num *
+            4,
             bias_attr=ParamAttr(
                 initial_mean=0.0, initial_std=0.0, name="convt1_b"),
-            param_attr_bn=ParamAttr(
-                initial_mean=1.0, initial_std=0.02, name="convt1_bn"),
-            bn=False,
-            trans=True)
-
-        convt2 = conv_bn(
-            convt1,
-            channels=features_num * 2,
-            output_x=16,
-            num_filters=features_num,
-            imgSize=32,
-            stride=2,
-            name="convt2" + name,
             param_attr=ParamAttr(
-                initial_mean=0.0, initial_std=0.02, name="convt2_w"),
+                initial_mean=0.0, initial_std=0.02, name="convt1_w"),
+            act=LinearActivation())
+
+        with mixed_layer() as convt1:
+            convt1 += conv_operator(
+                img=convt0,
+                filter=deconv_filter1,
+                filter_size=filter_size,
+                num_filters=features_num * 2,
+                num_channels=features_num * 4,
+                stride=2,
+                padding=padding,
+                trans=True)
+
+        filter_size, padding = cal_filter_padding(32, 16, 2)
+        deconv_filter2 = fc_layer(
+            input=pose,
+            size=filter_size * filter_size * features_num * 1 * features_num *
+            2,
             bias_attr=ParamAttr(
                 initial_mean=0.0, initial_std=0.0, name="convt2_b"),
-            param_attr_bn=ParamAttr(
-                initial_mean=1.0, initial_std=0.02, name="convt2_bn"),
-            bn=False,
-            trans=True)
-
-        convt3 = conv_bn(
-            convt2,
-            channels=features_num,
-            output_x=32,
-            num_filters=1,
-            imgSize=64,
-            stride=2,
-            name="convt3" + name,
             param_attr=ParamAttr(
-                initial_mean=0.0, initial_std=0.02, name="convt3_w"),
+                initial_mean=0.0, initial_std=0.02, name="convt2_w"),
+            act=LinearActivation())
+
+        with mixed_layer() as convt2:
+            convt2 += conv_operator(
+                img=convt1,
+                filter=deconv_filter2,
+                filter_size=filter_size,
+                num_filters=features_num * 1,
+                num_channels=features_num * 2,
+                stride=2,
+                padding=padding,
+                trans=True)
+
+        filter_size, padding = cal_filter_padding(64, 32, 2)
+        deconv_filter3 = fc_layer(
+            input=pose,
+            size=filter_size * filter_size * 1 * features_num * 1,
             bias_attr=ParamAttr(
                 initial_mean=0.0, initial_std=0.0, name="convt3_b"),
-            param_attr_bn=ParamAttr(
-                initial_mean=1.0, initial_std=0.02, name="convt3_bn"),
-            bn=False,
-            trans=True,
-            act=ReluActivation())
+            param_attr=ParamAttr(
+                initial_mean=0.0, initial_std=0.02, name="convt3_w"),
+            act=LinearActivation())
+
+        with mixed_layer() as convt3:
+            convt3 += conv_operator(
+                img=convt2,
+                filter=deconv_filter3,
+                filter_size=filter_size,
+                num_filters=1,
+                num_channels=features_num * 1,
+                stride=2,
+                padding=padding,
+                trans=True)
 
         return convt3
 
-    recon = deconv(hidden3, "recon")
-    future = deconv(hidden2, "pred")
+    recon = deconv(
+        id, shape, expand_layer(
+            input=first_seq(pose), expand_as=pose))
+    future = deconv(id, shape, new_pose)
 
     if is_generating:
         outputs(concat_layer(input=[convt3, trg_image]))

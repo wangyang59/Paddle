@@ -95,7 +95,7 @@ def conv_lstm_net():
     pose = fc_layer(
         input=hidden1,
         #size=features_num * 2,
-        size=5,
+        size=10,
         bias_attr=loaded_param_attr,
         param_attr=loaded_param_attr,
         act=ReluActivation())
