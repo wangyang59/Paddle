@@ -1,14 +1,16 @@
 import numpy as np
 import data_handler
 import sys
-num_frames = int(sys.argv[1])
+
+image_size = int(sys.argv[1])
+num_frames = int(sys.argv[2])
 
 data = np.loadtxt(
-    "rank-00000", comments=";").reshape((-1, 64 * 64 * num_frames))
+    "rank-00000", comments=";").reshape(
+        (-1, image_size * image_size * num_frames))
 #data[data>0.1] = 1
 
 batch_size = 50
-image_size = 64
 num_digits = 2
 step_length = 0.1
 

@@ -1,7 +1,7 @@
 import io
 import os
 import sys
-import Image
+from PIL import Image
 import argparse
 import logging
 import time
