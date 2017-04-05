@@ -19,8 +19,8 @@ paddle train \
     --config='gen2.conf' \
     --use_gpu=1 \
     --trainer_count=1 \
-    --init_model_path='./model/pass-00042' \
+    --init_model_path='./model_video/pass-00076' \
     --predict_output_dir=. \
     2>&1 | tee 'gen.log'
 
-python visualize.py 20
+python visualize.py 256 3 10

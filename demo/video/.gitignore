@@ -1,5 +1,6 @@
 data/
 data2/
+videoData/
 *.pyc
 *.log
 *.png

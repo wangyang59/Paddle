@@ -1,29 +1,30 @@
 import numpy as np
-import data_handler
 import sys
+import matplotlib.pyplot as plt
 
 image_size = int(sys.argv[1])
-num_frames = int(sys.argv[2])
+image_channel = int(sys.argv[2])
+num_frames = int(sys.argv[3])
 
 data = np.loadtxt(
     "rank-00000", comments=";").reshape(
-        (-1, image_size * image_size * num_frames))
-#data[data>0.1] = 1
+        (-1, image_size * image_size * image_channel * num_frames))
+data = (data[0, :]).reshape(
+    (image_size, image_size, image_channel, num_frames),
+    order="F").transpose(1, 0, 2, 3)
 
-batch_size = 50
-num_digits = 2
-step_length = 0.1
+num_rows = 2
+# create figure for original sequence
+plt.figure(2, figsize=(num_frames / 2, 2))
+plt.clf()
+for i in xrange(num_frames / 2):
+    plt.subplot(num_rows, num_frames / 2, i + 1)
+    plt.imshow(data[:, :, :, i * 2])
+    #interpolation="nearest")
+    plt.axis('off')
 
-dataHandler = data_handler.BouncingMNISTDataHandler(
-    num_frames, batch_size, image_size, num_digits, step_length,
-    "./data/mnist.h5")
-
-# angles = dataHandler.GetRandomValueSeq(dataHandler.batch_size_ * dataHandler.num_digits_,
-#                                 -15, 15)
-# 
-# case_id = 11
-# data, label = dataHandler.GetBatch()
-# print "label=%s" % label[case_id]
-dataHandler.DisplayData(data, case_id=11, output_file="rec1")
-dataHandler.DisplayData(data, case_id=22, output_file="rec2")
-dataHandler.DisplayData(data, case_id=33, output_file="rec3")
+    plt.subplot(num_rows, num_frames / 2, i + 1 + num_frames / 2)
+    plt.imshow(data[:, :, :, i * 2 + 1], interpolation="nearest")
+    plt.axis('off')
+plt.draw()
+plt.savefig("images.png", bbox_inches='tight')
